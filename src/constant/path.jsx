@@ -1,15 +1,14 @@
 const PATH = {
     SIGNIN: "/auth/login",
-
-
-    //GAME API
+    ISSUETOKEN: "/auth/token",
     USERINFO: "/users",
-    ISSUEGAMETOKEN: "/auth/token",
+    TICKETADD: "/tickets/add",
     GAMESTART: "/game/start",
     SCOREPOST: "/score/save",
+    LEADERBOARD: "/leaderboard",
+
+    ISSUEGAMETOKEN: "/auth/token",
     BRINGTICKET: "/users/info",
-    TICKETADD: "/tickets/add",
-    LEADERBOARD: "/leaderboard"
   };
   
   export { PATH };
