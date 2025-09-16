@@ -1,0 +1,333 @@
+/* style.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: #1a1a1a;
+  color: #fff;
+  overflow: hidden;
+}
+
+.game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.game-canvas {
+  border: 2px solid #333;
+  background: #2a2a2a;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 상단 HUD */
+.top-hud {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.score, .level, .time {
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* HP 바 */
+.hp-bar {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #333;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4444, #ff8888);
+  transition: width 0.3s ease;
+  border-radius: 8px;
+}
+
+/* EXP 바 */
+.exp-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.exp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4444ff, #8888ff);
+  transition: width 0.3s ease;
+  border-radius: 6px;
+}
+
+/* 메뉴 화면 */
+.menu-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 40px;
+  border-radius: 15px;
+  pointer-events: all;
+}
+
+.menu-screen h1 {
+  font-size: 3em;
+  margin-bottom: 30px;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+}
+
+.menu-screen button {
+  font-size: 1.5em;
+  padding: 15px 30px;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.menu-screen button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.menu-screen button:active {
+  transform: translateY(0);
+}
+
+/* 일시정지 화면 */
+.pause-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 40px;
+  border-radius: 15px;
+  pointer-events: all;
+}
+
+.pause-screen h2 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: #ffeb3b;
+}
+
+.pause-screen button {
+  font-size: 1.2em;
+  padding: 12px 25px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.pause-screen button:hover {
+  background: #45a049;
+}
+
+/* 레벨업 화면 */
+.levelup-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 40px;
+  border-radius: 15px;
+  pointer-events: all;
+  animation: levelUpPulse 0.5s ease-in-out;
+}
+
+@keyframes levelUpPulse {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.levelup-screen h2 {
+  font-size: 3em;
+  margin-bottom: 15px;
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.levelup-screen p {
+  font-size: 1.2em;
+  margin-bottom: 25px;
+  color: #ccc;
+}
+
+.upgrade-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.levelup-screen button {
+  font-size: 1.3em;
+  padding: 15px 30px;
+  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.levelup-screen button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+/* 게임오버 화면 */
+.gameover-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 40px;
+  border-radius: 15px;
+  pointer-events: all;
+  animation: gameOverFade 0.5s ease-in;
+}
+
+@keyframes gameOverFade {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.gameover-screen h2 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: #ff4444;
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
+.gameover-screen p {
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  color: #ccc;
+}
+
+.gameover-screen button {
+  font-size: 1.2em;
+  padding: 12px 25px;
+  background: #666;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background 0.3s;
+}
+
+.gameover-screen button:hover {
+  background: #777;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .game-canvas {
+    width: 100vw;
+    height: 60vh;
+  }
+  
+  .top-hud {
+    font-size: 14px;
+    gap: 15px;
+    padding: 8px 15px;
+  }
+  
+  .hp-bar, .exp-bar {
+    width: 80%;
+  }
+  
+  .menu-screen h1 {
+    font-size: 2em;
+  }
+  
+  .menu-screen button {
+    font-size: 1.2em;
+    padding: 12px 25px;
+  }
+}
+
+/* 키보드 컨트롤 가이드 */
+.controls-guide {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.controls-guide div {
+  margin-bottom: 2px;
+}

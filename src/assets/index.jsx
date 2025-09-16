@@ -1,0 +1,31 @@
+import { dico } from './images'
+import { error } from './images'
+import { bat } from './images'
+import { map } from './images'
+import { greenslime } from './images'
+import { blueslime } from './images'
+import { attack } from './images'
+
+import {
+    dicoMove_1,
+    dicoMove_2,
+    dicoMove_3,
+    dicoMove_4,
+    dicoMove_5
+} from './images'
+
+export {
+    dico,
+    error,
+    bat,
+    map,
+    greenslime,
+    blueslime,
+    attack,
+
+    dicoMove_1,
+    dicoMove_2,
+    dicoMove_3,
+    dicoMove_4,
+    dicoMove_5
+}

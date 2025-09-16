@@ -1,0 +1,30 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Go to service directory and pull latest code
+      run: |
+        cd /home/develop-front/kstadium-game-front
+        git pull origin main
+    
+    - name: Install dependencies
+      run: |
+        cd /home/develop-front/kstadium-game-front
+        npm ci
+    
+    - name: Build project
+      run: |
+        cd /home/develop-front/kstadium-game-front
+        npm run build
+    
+    - name: Restart application
+      run: |
+        cd /home/develop-front/kstadium-game-front
+        pm2 restart frontend || pm2 start npm --name "frontend" -- start
