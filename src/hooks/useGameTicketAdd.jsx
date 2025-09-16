@@ -1,67 +1,121 @@
 import { useState } from "react";
-import { gameAPI } from "../api/api";
-import { useUserinfoStore } from "../store/useUserinfoStore";
-import { useGameTokenStore } from "../store/useGameTokenStore";
 import { PATH } from "../constant/path";
+import { useTokenStore } from "../store/useTokenStore";
+import { API } from "../api/api";
+import { createApiHeaders } from "../utils/deviceInfo";
 
-const useGetUserToken = () => {
+// 티켓 타입 상수
+export const TICKET_TYPES = {
+  ONE: 'ONE',
+  DAY: 'DAY', 
+  WEEK: 'WEEK',
+  MONTH: 'MONTH'
+};
+
+const useGameTicketAdd = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [responseData, setResponseData] = useState(null);
   
-  // useUserinfoStore에서 account (address) 가져오기
-  const account = useUserinfoStore((state) => state.userInfo.account);
-  
-  // useGameTokenStore에서 토큰 관리 함수들과 현재 토큰 가져오기
-  const { gameToken, setGameToken: setStoreGameToken, clearGameToken } = useGameTokenStore();
+  // Store에서 필요한 함수들 가져오기
+  const { getAuthHeader, isAuthenticated } = useTokenStore();
 
-  // 게임 토큰 발급
-  const issueGameToken = async () => {
-    if (!account) {
-      setError('No wallet address. Please enter from App');
-      return null;
+  // 티켓 추가
+  const addTicket = async (userId, ticketType) => {
+    if (!isAuthenticated) {
+      setError('Authentication required. Please sign in first.');
+      return false;
+    }
+
+    if (!userId) {
+      setError('User ID is required.');
+      return false;
+    }
+
+    // 티켓 타입 유효성 검사
+    if (!Object.values(TICKET_TYPES).includes(ticketType)) {
+      setError(`Invalid ticket type. Must be one of: ${Object.values(TICKET_TYPES).join(', ')}`);
+      return false;
     }
 
     setLoading(true);
     setError(null);
+    setSuccess(false);
+    setResponseData(null);
     
     try {
-      const response = await gameAPI.post(PATH.ISSUEGAMETOKEN, {
-        wallet_address: account
-      });
+      // 기기 정보 헤더 생성
+      const deviceHeaders = await createApiHeaders();
       
-      // Zustand store에 토큰 저장
-      if (response.data.access_token) {
-        setStoreGameToken(response.data);
+      // Bearer 토큰 추가
+      const authHeader = getAuthHeader();
+      const headers = {
+        ...deviceHeaders,
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      };
+
+      // 요청 본문 생성
+      const requestBody = {
+        user_id: userId,
+        ticket: ticketType
+      };
+
+      const response = await API.post(PATH.TICKETADD, requestBody, { headers });
+      
+      setResponseData(response.data);
+      setSuccess(true);
+      return response.data;
+      
+    } catch (err) {
+      console.error('Failed to add ticket:', err);
+      setError(err.response?.data?.message || 'Failed to add ticket');
+      
+      // 401 Unauthorized 에러 시 인증 문제로 처리
+      if (err.response?.status === 401) {
+        setError('Authentication expired. Please sign in again.');
       }
       
-      return response.data;
-    } catch (err) {
-      console.error('Failed to issue game token:', err);
-      setError(err.response?.data?.message || 'Failed to issue game token');
-      return null;
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
+  // 각 티켓 타입별 편의 함수들
+  const addOneTicket = (userId) => addTicket(userId, TICKET_TYPES.ONE);
+  const addDayTicket = (userId) => addTicket(userId, TICKET_TYPES.DAY);
+  const addWeekTicket = (userId) => addTicket(userId, TICKET_TYPES.WEEK);
+  const addMonthTicket = (userId) => addTicket(userId, TICKET_TYPES.MONTH);
+
   // 상태 초기화
   const reset = () => {
     setLoading(false);
     setError(null);
-    clearGameToken(); // store에서 토큰 제거
+    setSuccess(false);
+    setResponseData(null);
   };
 
   return {
     // 상태
     loading,
     error,
-    account,
-    gameToken,  // store에서 가져온 현재 토큰
+    success,
+    responseData,
+    isAuthenticated,
     
     // 메서드
-    issueGameToken,
-    reset
+    addTicket,
+    addOneTicket,
+    addDayTicket,
+    addWeekTicket,
+    addMonthTicket,
+    reset,
+    
+    // 상수
+    TICKET_TYPES
   };
 };
 
-export { useGetUserToken };
+export { useGameTicketAdd };

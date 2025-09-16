@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { API } from "../api/api"; 
 import { PATH } from "../constant/path"; 
-import { useUserinfoStore } from "../store/useUserinfoStore";
+import { useTokenStore } from "../store/useTokenStore";
+import { createApiHeaders } from "../utils/deviceInfo";
 
 const useSignIn = () => {
-  const { setUserInfo, clearUserInfo } = useUserinfoStore();
+  const { setToken, clearToken } = useTokenStore();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -41,32 +42,31 @@ const useSignIn = () => {
       body.append('client_id', '');
       body.append('client_secret', '');
 
-      const res = await API.post(PATH.SIGNIN, body.toString(), {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
+      // 기기 정보 및 위치 정보가 포함된 헤더 생성
+      const headers = await createApiHeaders();
 
-      // 로그인 성공 시 사용자 정보 저장
-      if (res.data) {
-        setUserInfo({
-          username: username,
-          ...res.data
-        });
+      const res = await API.post(PATH.SIGNIN, body.toString(), { headers });
+
+      // 로그인 성공 시 토큰 저장
+      if (res.data && res.data.access_token) {
+        setToken(res.data);
         setSuccess(true);
+        
+        // 폼 데이터 초기화 (선택사항)
+        setFormData({ username: '', password: '' });
       }
 
     } catch (error) {         
       console.error('Login failed:', error);
       setError(error.response?.data?.message || "로그인에 실패했습니다.");         
-      clearUserInfo();
+      clearToken();
     } finally {
       setLoading(false);
     }
   };
 
   const handleSignOut = () => {
-    clearUserInfo();
+    clearToken();
     setSuccess(false);
     setFormData({ username: '', password: '' });
     setError(null);

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { gameAPI } from "../api/api";
 import { PATH } from "../constant/path";
-import { useUserinfoStore } from "../store/useUserinfoStore";
-import { useGameTokenStore } from "../store/useGameTokenStore";
+import { useTokenStore } from "../store/useTokenStore";
+import { API } from "../api/api";
+import { createApiHeaders } from "../utils/deviceInfo";
+import { useUserInfoStore } from "../store/useUserinfoStore";
 
 const useGameStart = () => {
   const [loading, setLoading] = useState(false);
@@ -10,10 +11,10 @@ const useGameStart = () => {
   const [gameSession, setGameSession] = useState(null);
   
   // useUserinfoStore에서 account (address) 가져오기
-  const account = useUserinfoStore((state) => state.userInfo.account);
+  const account = useUserInfoStore((state) => state.userInfo.account);
   
-  // useGameTokenStore에서 토큰 가져오기
-  const { getAccessToken } = useGameTokenStore();
+  // useTokenStore에서 토큰 관련 함수들 가져오기
+  const { getAuthHeader, isAuthenticated } = useTokenStore();
 
   // 게임 시작
   const startGame = async () => {
@@ -22,9 +23,8 @@ const useGameStart = () => {
       return null;
     }
 
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      setError('No wallet address. Please enter from App');
+    if (!isAuthenticated) {
+      setError('Authentication required. Please sign in first');
       return null;
     }
 
@@ -32,14 +32,20 @@ const useGameStart = () => {
     setError(null);
     
     try {
-      const response = await gameAPI.post(PATH.GAMESTART, {
+      // 기기 정보 헤더 생성
+      const deviceHeaders = await createApiHeaders();
+      
+      // Bearer 토큰과 기기 정보 헤더 합치기
+      const authHeader = getAuthHeader();
+      const headers = {
+        ...deviceHeaders,
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await API.post(PATH.GAMESTART, {
         wallet_address: account
-      }, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      }, { headers });
       
       setGameSession(response.data);
       return response.data;
@@ -65,6 +71,7 @@ const useGameStart = () => {
     error,
     gameSession,
     account,
+    isAuthenticated,
     
     // 메서드
     startGame,

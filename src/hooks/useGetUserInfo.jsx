@@ -1,20 +1,25 @@
 import { useState } from "react";
-import { gameAPI } from "../api/api";
 import { PATH } from "../constant/path";
-import { useUserinfoStore } from "../store/useUserinfoStore";
+import { useTokenStore } from "../store/useTokenStore";
+import { API } from "../api/api";
+import { createApiHeaders } from "../utils/deviceInfo";
+import { useUserInfoStore } from "../store/useUserinfoStore";
 
 const useGetUserInfo = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [userInfo, setUserInfo] = useState(null);
   
-  // useUserinfoStore에서 account (address) 가져오기
-  const account = useUserinfoStore((state) => state.userInfo.account);
+  // Store에서 필요한 함수들 가져오기
+  const { setUserInfo, clearUserInfo } = useUserInfoStore();
+  const { getAuthHeader, isAuthenticated } = useTokenStore();
+  
+  // Store에 저장된 사용자 정보 가져오기
+  const userInfo = useUserInfoStore((state) => state.userInfo);
 
   // 사용자 정보 조회
   const getUserInfo = async () => {
-    if (!account) {
-      setError('No wallet address. Please enter from App');
+    if (!isAuthenticated) {
+      setError('Authentication required. Please sign in first.');
       return null;
     }
 
@@ -22,16 +27,32 @@ const useGetUserInfo = () => {
     setError(null);
     
     try {
-      const response = await gameAPI.post(PATH.USERINFO, {
-        wallet_address: account
-      });
+      // 기기 정보 헤더 생성
+      const deviceHeaders = await createApiHeaders();
       
+      // Bearer 토큰과 기기 정보 헤더 합치기
+      const authHeader = getAuthHeader();
+      const headers = {
+        ...deviceHeaders,
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await API.get(PATH.USERINFO, { headers });
+      
+      // Store에 사용자 정보 저장
       setUserInfo(response.data);
 
       return response.data;
     } catch (err) {
       console.error('Failed to get user info:', err);
       setError(err.response?.data?.message || 'Failed to get user info');
+      
+      // 401 Unauthorized 에러 시 토큰 정리
+      if (err.response?.status === 401) {
+        clearUserInfo();
+      }
+      
       return null;
     } finally {
       setLoading(false);
@@ -42,7 +63,7 @@ const useGetUserInfo = () => {
   const reset = () => {
     setLoading(false);
     setError(null);
-    setUserInfo(null);
+    clearUserInfo();
   };
 
   return {
@@ -50,7 +71,7 @@ const useGetUserInfo = () => {
     loading,
     error,
     userInfo,
-    account,
+    isAuthenticated,
     
     // 메서드
     getUserInfo,

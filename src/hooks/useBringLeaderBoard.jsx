@@ -1,6 +1,5 @@
-import { gameAPI } from "../api/api";
+import { API } from "../api/api";
 import { PATH } from "../constant/path";
-import { useGameTokenStore } from "../store/useGameTokenStore";
 import { useLeaderBoardStore } from "../store/useLeaderBoardStore";
 
 const useBringLeaderBoard = () => {
@@ -19,18 +18,9 @@ const useBringLeaderBoard = () => {
     getDataByType,
     clearError
   } = useLeaderBoardStore();
-  
-  // useGameTokenStore에서 토큰 가져오기
-  const { getAccessToken } = useGameTokenStore();
 
   // 리더보드 정보 가져오기
   const bringLeaderBoard = async (type = 'TopScore') => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      setError('No wallet address. Please enter from App');
-      return null;
-    }
-
     // type 유효성 검사
     const validTypes = ['TopScore', 'MostPlay'];
     if (!validTypes.includes(type)) {
@@ -43,7 +33,7 @@ const useBringLeaderBoard = () => {
     setCurrentType(type);
     
     try {
-      const response = await gameAPI.get(`${PATH.LEADERBOARD}?type=${type}`, {
+      const response = await API.get(`${PATH.LEADERBOARD}?type=${type}`, {
         headers: {
           'Content-Type': 'application/json'
         }

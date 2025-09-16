@@ -1,71 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useUserinfoStore } from './store/useUserinfoStore';
-import { useTicketInfoStore } from './store/useTicketInfoStore';
-import { useGameTokenStore } from './store/useGameTokenStore';
-import { useBringTicketInfo } from './hooks/useBringTicketInfo';
+import { useTokenStore } from './store/useTokenStore';
+import { useGetUserInfo } from './hooks/useGetUserInfo';
+import { useUserInfoStore } from './store/useUserinfoStore';
 
 const Navigation = ({ isHidden = false }) => {
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     
-    // store에서 사용자 정보와 티켓 정보, 게임 토큰 가져오기
-    const { userInfo } = useUserinfoStore();
-    const { ticketInfo: storeTicketInfo } = useTicketInfoStore();
-    const { gameToken } = useGameTokenStore();
+    // store에서 사용자 정보와 토큰 정보 가져오기
+    const { userInfo } = useUserInfoStore();
+    const { isAuthenticated } = useTokenStore();
     
-    // 티켓 정보를 가져오는 hook
-    const ticketInfoHook = useBringTicketInfo();
+    // 사용자 정보를 가져오는 hook
+    const { getUserInfo, loading } = useGetUserInfo();
     
-    // 훅의 로컬 ticketInfo 또는 스토어의 ticketInfo 사용
-    const ticketInfo = ticketInfoHook.ticketInfo || storeTicketInfo;
-
-    // gameToken이 있고 ticketInfo가 없을 때 티켓 정보 가져오기
+    // 토큰이 있고 사용자 정보가 없을 때 사용자 정보 가져오기
     useEffect(() => {
-        if (gameToken && !ticketInfo) {
-            ticketInfoHook.bringTicketInfo();
+        if (isAuthenticated && !userInfo) {
+            getUserInfo();
         }
-    }, [gameToken, ticketInfo]);
-    
-    // 지갑 주소 포맷팅 함수
-    const formatAddress = (address) => {
-        if (!address) return '';
-        return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    };
+    }, [isAuthenticated, userInfo]);
 
-    // 티켓 정보 포맷팅 함수 - 시간까지 포함
+    // 티켓 정보 포맷팅 함수 - userInfo의 ticket_info 사용
     const formatTicketInfo = () => {
-        
-        if (!ticketInfo) {
+        if (!userInfo?.ticket_info) {
             return 'One time ticket: 00 / Period ticket: none';
         }
         
-        // ticketInfo가 객체인지 확인하고 필요한 속성이 있는지 체크
-        if (typeof ticketInfo !== 'object') {
-            return 'One time ticket: 00 / Period ticket: none';
-        }
-        
-        const oneTimeTickets = ticketInfo.one_time_tickets || 0;
+        const ticketInfo = userInfo.ticket_info;
+        const oneTimeTickets = ticketInfo.ONE || 0;
         let periodInfo = 'none';
         
-        if (ticketInfo.period_expires_at) {
-            try {
-                const expiryDate = new Date(ticketInfo.period_expires_at);
-                // 날짜가 유효한지 확인
-                if (!isNaN(expiryDate.getTime())) {
-                    const month = String(expiryDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(expiryDate.getDate()).padStart(2, '0');
-                    // 시간과 분을 HH:MM 형식으로 추가
-                    const hours = String(expiryDate.getHours()).padStart(2, '0');
-                    const minutes = String(expiryDate.getMinutes()).padStart(2, '0');
-                    periodInfo = `${month}/${day} ${hours}:${minutes}`;
-                } else {
-                    periodInfo = 'none';
-                }
-            } catch (error) {
-                console.error('Date parsing error:', error);
-                periodInfo = 'none';
-            }
+        // DAY, WEEK, MONTH 중 하나라도 있으면 표시
+        if (ticketInfo.DAY && ticketInfo.DAY !== "0") {
+            periodInfo = `Day: ${ticketInfo.DAY}`;
+        } else if (ticketInfo.WEEK && ticketInfo.WEEK !== "0") {
+            periodInfo = `Week: ${ticketInfo.WEEK}`;
+        } else if (ticketInfo.MONTH && ticketInfo.MONTH !== "0") {
+            periodInfo = `Month: ${ticketInfo.MONTH}`;
         }
         
         return `One time ticket: ${String(oneTimeTickets).padStart(2, '0')} / Period ticket: ${periodInfo}`;
@@ -185,22 +158,22 @@ const Navigation = ({ isHidden = false }) => {
                             {/* 티켓 정보 */}
                             <div className="bg-purple-500/15 border border-purple-500/30 rounded-lg px-3 md:px-4 py-2 transition-all duration-300 hover:bg-purple-500/25">
                                 <div className="text-sm md:text-base text-white font-medium whitespace-nowrap">
-                                    {formatTicketInfo()}
+                                    {loading ? 'Loading...' : formatTicketInfo()}
                                 </div>
                             </div>
                             
-                            {/* 사용자 지갑 주소 */}
+                            {/* 사용자 정보 - 인증 상태만 표시 */}
                             <div className="flex items-center">
-                                {userInfo?.account ? (
+                                {isAuthenticated ? (
                                     <div className="flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 rounded-lg px-3 md:px-4 py-2 transition-all duration-300 hover:bg-blue-500/25">
                                         <span className="text-base">👤</span>
-                                        <span className="text-white font-medium text-sm md:text-base tracking-wider">
-                                            {formatAddress(userInfo.account)}
+                                        <span className="text-white font-medium text-sm md:text-base">
+                                            {userInfo?.user_id || 'Authenticated'}
                                         </span>
                                     </div>
                                 ) : (
                                     <div className="text-white/60 text-sm">
-                                        Wallet not connected
+                                        Not signed in
                                     </div>
                                 )}
                             </div>
@@ -237,21 +210,21 @@ const Navigation = ({ isHidden = false }) => {
                                 {/* 티켓 정보 */}
                                 <div className="bg-purple-500/15 border border-purple-500/30 rounded-lg px-4 py-3">
                                     <div className="text-sm text-white font-medium">
-                                        {formatTicketInfo()}
+                                        {loading ? 'Loading...' : formatTicketInfo()}
                                     </div>
                                 </div>
                                 
                                 {/* 사용자 정보 */}
-                                {userInfo?.account ? (
+                                {isAuthenticated ? (
                                     <div className="flex items-center gap-3 bg-blue-500/15 border border-blue-500/30 rounded-lg px-4 py-3">
                                         <span className="text-base">👤</span>
-                                        <span className="text-white font-medium text-sm tracking-wider">
-                                            {formatAddress(userInfo.account)}
+                                        <span className="text-white font-medium text-sm">
+                                            {userInfo?.user_id || 'Authenticated'}
                                         </span>
                                     </div>
                                 ) : (
                                     <div className="text-white/60 text-sm px-4 py-2">
-                                        Wallet not connected
+                                        Not signed in
                                     </div>
                                 )}
                             </div>

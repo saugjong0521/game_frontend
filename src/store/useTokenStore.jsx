@@ -1,0 +1,62 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+const useTokenStore = create(
+  persist(
+    (set, get) => ({
+      token: null,
+      tokenType: 'bearer',
+      isAuthenticated: false,
+
+      // 토큰 설정
+      setToken: (tokenData) => {
+        set({
+          token: tokenData.access_token,
+          tokenType: tokenData.token_type || 'bearer',
+          isAuthenticated: true,
+        });
+      },
+
+      // 토큰 제거
+      clearToken: () => {
+        set({
+          token: null,
+          tokenType: 'bearer',
+          isAuthenticated: false,
+        });
+      },
+
+      // Authorization 헤더 생성
+      getAuthHeader: () => {
+        const { token, tokenType } = get();
+        return token ? `${tokenType} ${token}` : null;
+      },
+
+      // 토큰 유효성 검사 (기본적인 JWT 만료 체크)
+      isTokenValid: () => {
+        const { token } = get();
+        if (!token) return false;
+        
+        try {
+          // JWT payload 디코딩 (간단한 만료 체크)
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          return payload.exp > currentTime;
+        } catch (error) {
+          console.error('토큰 검증 오류:', error);
+          return false;
+        }
+      },
+    }),
+    {
+      name: 'token-storage', // localStorage 키 이름
+      partialize: (state) => ({
+        token: state.token,
+        tokenType: state.tokenType,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);
+
+export { useTokenStore };

@@ -1,14 +1,13 @@
 const PATH = {
     SIGNIN: "/auth/login",
-    ISSUETOKEN: "/auth/token",
-    USERINFO: "/users",
-    TICKETADD: "/tickets/add",
-    GAMESTART: "/game/start",
-    SCOREPOST: "/score/save",
-    LEADERBOARD: "/leaderboard",
+    USERINFO: "/api/users",
+    TICKETADD: "/api/tickets/add",
+    GAMESTART: "/api/game/start",
+    SCOREPOST: "/api/score/save",
+    LEADERBOARD: "/api/leaderboard",
 
-    ISSUEGAMETOKEN: "/auth/token",
-    BRINGTICKET: "/users/info",
+    ISSUEGAMETOKEN: "/api/auth/token",
+    BRINGTICKET: "/api/users/info",
   };
   
   export { PATH };

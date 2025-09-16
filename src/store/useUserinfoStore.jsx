@@ -1,56 +1,69 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export const useUserinfoStore = create((set, get) => ({
-  // 사용자 정보 상태
-  userInfo: {
-    userId: '',
-    name: '',
-    account: '',
-    symbol: '',
-    email: '',
-    loginTime: 0,
-  },
-  
-  // 사용자 정보 설정
-  setUserInfo: (userInfo) => set({ userInfo }),
-  
-  // 개별 필드 업데이트
-  setUserId: (userId) => set((state) => ({
-    userInfo: { ...state.userInfo, userId }
-  })),
-  
-  setName: (name) => set((state) => ({
-    userInfo: { ...state.userInfo, name }
-  })),
-  
-  setAccount: (account) => set((state) => ({
-    userInfo: { ...state.userInfo, account }
-  })),
-  
-  setSymbol: (symbol) => set((state) => ({
-    userInfo: { ...state.userInfo, symbol }
-  })),
-  
-  setEmail: (email) => set((state) => ({
-    userInfo: { ...state.userInfo, email }
-  })),
-  
-  setLoginTime: (loginTime) => set((state) => ({
-    userInfo: { ...state.userInfo, loginTime }
-  })),
-  
-  // 사용자 정보 초기화
-  clearUserInfo: () => set({
-    userInfo: {
-      userId: '',
-      name: '',
-      account: '',
-      symbol: '',
-      email: '',
-      loginTime: 0,
+const useUserInfoStore = create(
+  persist(
+    (set, get) => ({
+      userInfo: null,
+
+      // 사용자 정보 설정
+      setUserInfo: (userInfo) => {
+        set({ userInfo });
+      },
+
+      // 사용자 정보 제거
+      clearUserInfo: () => {
+        set({ userInfo: null });
+      },
+
+      // 특정 필드 업데이트
+      updateUserInfo: (updates) => {
+        const currentUserInfo = get().userInfo;
+        if (currentUserInfo) {
+          set({
+            userInfo: {
+              ...currentUserInfo,
+              ...updates
+            }
+          });
+        }
+      },
+
+      // 티켓 정보 업데이트
+      updateTicketInfo: (ticketUpdates) => {
+        const currentUserInfo = get().userInfo;
+        if (currentUserInfo && currentUserInfo.ticket_info) {
+          set({
+            userInfo: {
+              ...currentUserInfo,
+              ticket_info: {
+                ...currentUserInfo.ticket_info,
+                ...ticketUpdates
+              }
+            }
+          });
+        }
+      },
+
+      // 사용자 ID 가져오기
+      getUserId: () => {
+        const { userInfo } = get();
+        return userInfo?.user_id || null;
+      },
+
+      // 티켓 정보 가져오기
+      getTicketInfo: () => {
+        const { userInfo } = get();
+        return userInfo?.ticket_info || null;
+      },
+    }),
+    {
+      name: 'userinfo-storage', // localStorage 키 이름
+      partialize: (state) => ({
+        userInfo: state.userInfo,
+      }),
     }
-  }),
-  
-  // 사용자 정보 가져오기
-  getUserInfo: () => get().userInfo,
-}));
+  )
+);
+
+export { useUserInfoStore };

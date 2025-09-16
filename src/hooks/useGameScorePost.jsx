@@ -1,30 +1,21 @@
 import { useState } from "react";
-import { gameAPI } from "../api/api";
 import { PATH } from "../constant/path";
-import { useUserinfoStore } from "../store/useUserinfoStore";
-import { useGameTokenStore } from "../store/useGameTokenStore";
+import { useTokenStore } from "../store/useTokenStore";
+import { API } from "../api/api";
+import { createApiHeaders } from "../utils/deviceInfo";
 
 const useGameScorePost = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [scoreResult, setScoreResult] = useState(null);
   
-  // useUserinfoStore에서 account (address) 가져오기
-  const account = useUserinfoStore((state) => state.userInfo.account);
-  
-  // useGameTokenStore에서 토큰 가져오기
-  const { getAccessToken } = useGameTokenStore();
+  // useTokenStore에서 토큰 관련 함수들 가져오기
+  const { getAuthHeader, isAuthenticated } = useTokenStore();
 
   // 게임 점수 저장
   const postGameScore = async (kill, level) => {
-    if (!account) {
-      setError('No wallet address. Please enter from App');
-      return null;
-    }
-
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      setError('No wallet address. Please enter from App');
+    if (!isAuthenticated) {
+      setError('Authentication required. Please sign in first');
       return null;
     }
 
@@ -37,16 +28,21 @@ const useGameScorePost = () => {
     setError(null);
     
     try {
-      const response = await gameAPI.post(PATH.SCOREPOST, {
-        wallet_address: account,
+      // 기기 정보 헤더 생성
+      const deviceHeaders = await createApiHeaders();
+      
+      // Bearer 토큰과 기기 정보 헤더 합치기
+      const authHeader = getAuthHeader();
+      const headers = {
+        ...deviceHeaders,
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await API.post(PATH.SCOREPOST, {
         kill: kill,
         level: level
-      }, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      }, { headers });
       
       setScoreResult(response.data);
       return response.data;
@@ -71,7 +67,7 @@ const useGameScorePost = () => {
     loading,
     error,
     scoreResult,
-    account,
+    isAuthenticated,
     
     // 메서드
     postGameScore,
