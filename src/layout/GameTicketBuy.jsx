@@ -1,9 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGameTicketAdd } from '../hooks/useGameTicketAdd';
+import { useGetUserInfo } from '../hooks/useGetUserInfo';
 
-const GameGuide = () => {
+const GameTicketBuy = () => {
   const [openSection, setOpenSection] = useState('overview');
   const navigate = useNavigate();
+  
+  // 티켓 구매 훅
+  const {
+    loading: ticketLoading,
+    error: ticketError,
+    success: ticketSuccess,
+    addOneTicket,
+    addDayTicket,
+    addWeekTicket,
+    addMonthTicket,
+    reset: resetTicket
+  } = useGameTicketAdd();
+
+  // 사용자 정보 훅 (유저 ID 가져오기 위함)
+  const { userInfo, getUserInfo } = useGetUserInfo();
 
   const toggleSection = (section) => {
     setOpenSection(openSection === section ? null : section);
@@ -26,6 +43,57 @@ const GameGuide = () => {
 
   const handlePlayNow = () => {
     navigate('/game/survival');
+  };
+
+  // 티켓 구매 핸들러
+  const handleBuyTicket = async (ticketType) => {
+    // 사용자 정보가 없으면 먼저 가져오기
+    let currentUserInfo = userInfo;
+    if (!currentUserInfo || !currentUserInfo.user_id) {
+      try {
+        currentUserInfo = await getUserInfo();
+        if (!currentUserInfo || !currentUserInfo.user_id) {
+          alert('User information not found. Please login first.');
+          return;
+        }
+      } catch (error) {
+        alert('Failed to get user information. Please login first.');
+        return;
+      }
+    }
+
+    // 이전 메시지 초기화
+    resetTicket();
+
+    try {
+      let result;
+      switch (ticketType) {
+        case 'ONE':
+          result = await addOneTicket(currentUserInfo.user_id);
+          break;
+        case 'DAY':
+          result = await addDayTicket(currentUserInfo.user_id);
+          break;
+        case 'WEEK':
+          result = await addWeekTicket(currentUserInfo.user_id);
+          break;
+        case 'MONTH':
+          result = await addMonthTicket(currentUserInfo.user_id);
+          break;
+        default:
+          alert('Invalid ticket type');
+          return;
+      }
+
+      if (result) {
+        // 성공 시 사용자 정보 다시 가져와서 업데이트
+        setTimeout(() => {
+          getUserInfo();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Ticket purchase failed:', error);
+    }
   };
 
   const sections = [
@@ -240,19 +308,6 @@ const GameGuide = () => {
         </div>
       )
     },
-    /* {
-      id: 'verification',
-      title: 'Checking Tickets',
-      icon: '🔍',
-      content: (
-        <div className="space-y-3">
-          <div className="bg-gray-800/50 p-3 rounded-lg">
-            <p className="text-gray-300 text-sm">You can verify your ticket information in the <strong className="text-blue-300">designated page</strong>.</p>
-            <p className="text-gray-500 text-xs mt-1">(Image upload coming soon)</p>
-          </div>
-        </div>
-      )
-    } */
   ];
 
   return (
@@ -262,34 +317,104 @@ const GameGuide = () => {
           <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
             K STADIUM Survival Beta
           </h2>
-          <p className="text-gray-400 text-sm">Complete Game Guide</p>
+          <p className="text-gray-400 text-sm">Ticket Buy</p>
         </div>
 
-        <div className="space-y-3">
-          {sections.map((section) => (
-            <div key={section.id} className="bg-gray-800/50 rounded-lg border border-gray-700">
-              <button
-                onClick={() => toggleSection(section.id)}
-                className="w-full p-3 text-left bg-black flex items-center justify-between hover:bg-gray-700/30 transition-colors rounded-lg"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">{section.icon}</span>
-                  <h3 className="text-base font-semibold text-white">{section.title}</h3>
-                </div>
-                <span className={`text-gray-400 transition-transform text-sm ${openSection === section.id ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
-              </button>
-
-              {openSection === section.id && (
-                <div className="px-3 pb-3">
-                  <div className="border-t border-gray-600 pt-3">
-                    {section.content}
-                  </div>
-                </div>
-              )}
+        {/* 티켓 구매 섹션 */}
+        <div className="space-y-4 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Purchase Tickets</h3>
+          
+          {/* ONE 티켓 */}
+          <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4 border border-blue-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-white font-semibold">1 Play Pass</h4>
+                <p className="text-blue-200 text-sm">Single game access</p>
+              </div>
+              <div className="text-right">
+                <div className="text-white font-bold text-lg">500 KSTA</div>
+              </div>
             </div>
-          ))}
+            <button
+              onClick={() => handleBuyTicket('ONE')}
+              disabled={ticketLoading}
+              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              {ticketLoading ? 'Processing...' : 'Buy ONE Ticket'}
+            </button>
+          </div>
+
+          {/* DAY 티켓 */}
+          <div className="bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-lg p-4 border border-green-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-white font-semibold">1 Day Pass</h4>
+                <p className="text-green-200 text-sm">24 hours unlimited access</p>
+              </div>
+              <div className="text-right">
+                <div className="text-white font-bold text-lg">2,000 KSTA</div>
+              </div>
+            </div>
+            <button
+              onClick={() => handleBuyTicket('DAY')}
+              disabled={ticketLoading}
+              className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              {ticketLoading ? 'Processing...' : 'Buy DAY Ticket'}
+            </button>
+          </div>
+
+          {/* WEEK 티켓 */}
+          <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-white font-semibold">1 Week Pass</h4>
+                <p className="text-yellow-200 text-sm">7 days unlimited access</p>
+              </div>
+              <div className="text-right">
+                <div className="text-white font-bold text-lg">10,000 KSTA</div>
+              </div>
+            </div>
+            <button
+              onClick={() => handleBuyTicket('WEEK')}
+              disabled={ticketLoading}
+              className="w-full py-2 px-4 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+            >
+              {ticketLoading ? 'Processing...' : 'Buy WEEK Ticket'}
+            </button>
+          </div>
+
+          {/* MONTH 티켓 */}
+          <div className="bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-lg p-4 border border-red-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-white font-semibold">1 Month Pass</h4>
+                <p className="text-red-200 text-sm">30 days unlimited access</p>
+              </div>
+              <div className="text-right">
+                <div className="text-white font-bold text-lg">Coming Soon</div>
+              </div>
+            </div>
+            <button
+              disabled={true}
+              className="w-full py-2 px-4 bg-gray-600 text-gray-400 font-semibold rounded-lg cursor-not-allowed"
+            >
+              Coming Soon
+            </button>
+          </div>
+
+          {/* 티켓 구매 결과 메시지 */}
+          {ticketError && (
+            <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
+              {ticketError}
+            </div>
+          )}
+
+          {ticketSuccess && (
+            <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 text-sm">
+              Ticket purchased successfully! You can now play the game.
+            </div>
+          )}
         </div>
 
         <div className="mt-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg border border-purple-500/20">
@@ -307,4 +432,4 @@ const GameGuide = () => {
   );
 };
 
-export default GameGuide;
+export default GameTicketBuy;

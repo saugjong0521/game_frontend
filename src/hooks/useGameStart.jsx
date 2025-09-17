@@ -18,15 +18,7 @@ const useGameStart = () => {
 
   // 게임 시작
   const startGame = async () => {
-    if (!account) {
-      setError('No wallet address. Please enter from App');
-      return null;
-    }
 
-    if (!isAuthenticated) {
-      setError('Authentication required. Please sign in first');
-      return null;
-    }
 
     setLoading(true);
     setError(null);
@@ -44,7 +36,6 @@ const useGameStart = () => {
       };
 
       const response = await API.post(PATH.GAMESTART, {
-        wallet_address: account
       }, { headers });
       
       setGameSession(response.data);

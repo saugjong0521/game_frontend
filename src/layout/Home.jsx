@@ -53,6 +53,120 @@ const Home = () => {
 
     const isLoading = signInLoading || userInfoLoading || isLoggingIn;
 
+    // 로그인 성공 후 사용자 정보가 있으면 대시보드 표시
+    if (userInfo && isAuthenticated) {
+        return (
+            <div className="w-screen h-screen relative bg-gradient-to-br from-purple-900 via-purple-700 to-amber-500 flex items-center justify-center overflow-hidden">
+                {/* Background overlay effects */}
+                <div 
+                    className="absolute inset-0"
+                    style={{
+                        background: `
+                            radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 80% 20%, rgba(249, 115, 22, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.2) 0%, transparent 50%)
+                        `
+                    }}
+                ></div>
+                
+                {/* Particles */}
+                <div className="absolute inset-0 overflow-hidden">
+                    {[...Array(9)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="absolute w-1 h-1 bg-white/80 rounded-full animate-bounce"
+                            style={{
+                                left: `${(i + 1) * 10}%`,
+                                animationDelay: `${i * 0.5}s`,
+                                animationDuration: '6s',
+                            }}
+                        />
+                    ))}
+                </div>
+
+                {/* 사용자 정보 대시보드 */}
+                <div className="relative z-10 bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20 w-full max-w-lg">
+                    <div className="text-center mb-8">
+                        <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-white via-blue-300 to-purple-300 bg-clip-text text-transparent">
+                            환영합니다!
+                        </h1>
+                        <p className="text-white/80">사용자 정보</p>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* 사용자 ID */}
+                        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                            <div className="flex items-center justify-between">
+                                <span className="text-white/70 text-sm font-medium">사용자 ID</span>
+                                <span className="text-white text-lg font-semibold">{userInfo.user_id}</span>
+                            </div>
+                        </div>
+
+                        {/* 티켓 정보 */}
+                        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                            <h3 className="text-white/90 text-lg font-semibold mb-4">티켓 정보</h3>
+                            
+                            <div className="space-y-3">
+                                {/* ONE 티켓 */}
+                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                                        <span className="text-white font-medium">ONE</span>
+                                    </div>
+                                    <span className="text-blue-200 text-lg font-bold">
+                                        {userInfo.ticket_info?.ONE ?? 'N/A'}
+                                    </span>
+                                </div>
+
+                                {/* DAY 티켓 */}
+                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-lg border border-green-500/30">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                                        <span className="text-white font-medium">DAY</span>
+                                    </div>
+                                    <span className="text-green-200 text-lg font-bold">
+                                        {userInfo.ticket_info?.DAY ?? 'null'}
+                                    </span>
+                                </div>
+
+                                {/* WEEK 티켓 */}
+                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                                        <span className="text-white font-medium">WEEK</span>
+                                    </div>
+                                    <span className="text-yellow-200 text-lg font-bold">
+                                        {userInfo.ticket_info?.WEEK ?? 'null'}
+                                    </span>
+                                </div>
+
+                                {/* MONTH 티켓 */}
+                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-lg border border-red-500/30">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                                        <span className="text-white font-medium">MONTH</span>
+                                    </div>
+                                    <span className="text-red-200 text-lg font-bold">
+                                        {userInfo.ticket_info?.MONTH ?? 'null'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 로그아웃 버튼 */}
+                        <button
+                            onClick={handleSignOut}
+                            className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-all duration-200 border border-white/20"
+                        >
+                            로그아웃
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // 로그인 폼 (기본 상태)
     return (
         <div className="w-screen h-screen relative bg-gradient-to-br from-purple-900 via-purple-700 to-amber-500 flex items-center justify-center overflow-hidden">
             {/* Background overlay effects */}
@@ -125,15 +239,6 @@ const Home = () => {
                         />
                     </div>
 
-                    {/* 디버그 정보 표시 */}
-                    {userInfo && (
-                        <div className="p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg text-blue-200 text-sm">
-                            <div>사용자 정보 로드 완료!</div>
-                            <div>인증 상태: {isAuthenticated ? '인증됨' : '미인증'}</div>
-                            <div>사용자 ID: {userInfo.id || 'N/A'}</div>
-                        </div>
-                    )}
-
                     {/* 에러 메시지 표시 */}
                     {(signInError || userInfoError) && (
                         <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
@@ -166,16 +271,6 @@ const Home = () => {
                             '로그인'
                         )}
                     </button>
-
-                    {/* 디버그용 로그아웃 버튼 (로그인 성공 시에만 표시) */}
-                    {success && (
-                        <button
-                            onClick={handleSignOut}
-                            className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-white/80 text-sm rounded-lg transition-all duration-200"
-                        >
-                            로그아웃
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

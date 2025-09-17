@@ -22,28 +22,6 @@ const Navigation = ({ isHidden = false }) => {
         }
     }, [isAuthenticated, userInfo]);
 
-    // 티켓 정보 포맷팅 함수 - userInfo의 ticket_info 사용
-    const formatTicketInfo = () => {
-        if (!userInfo?.ticket_info) {
-            return 'One time ticket: 00 / Period ticket: none';
-        }
-        
-        const ticketInfo = userInfo.ticket_info;
-        const oneTimeTickets = ticketInfo.ONE || 0;
-        let periodInfo = 'none';
-        
-        // DAY, WEEK, MONTH 중 하나라도 있으면 표시
-        if (ticketInfo.DAY && ticketInfo.DAY !== "0") {
-            periodInfo = `Day: ${ticketInfo.DAY}`;
-        } else if (ticketInfo.WEEK && ticketInfo.WEEK !== "0") {
-            periodInfo = `Week: ${ticketInfo.WEEK}`;
-        } else if (ticketInfo.MONTH && ticketInfo.MONTH !== "0") {
-            periodInfo = `Month: ${ticketInfo.MONTH}`;
-        }
-        
-        return `One time ticket: ${String(oneTimeTickets).padStart(2, '0')} / Period ticket: ${periodInfo}`;
-    };
-
     const toggleDropdown = (menu) => {
         setActiveDropdown(activeDropdown === menu ? null : menu);
     };
@@ -155,13 +133,7 @@ const Navigation = ({ isHidden = false }) => {
 
                         {/* 티켓 정보와 사용자 정보 표시 */}
                         <div className="flex items-center gap-3 md:gap-4">
-                            {/* 티켓 정보 */}
-                            <div className="bg-purple-500/15 border border-purple-500/30 rounded-lg px-3 md:px-4 py-2 transition-all duration-300 hover:bg-purple-500/25">
-                                <div className="text-sm md:text-base text-white font-medium whitespace-nowrap">
-                                    {loading ? 'Loading...' : formatTicketInfo()}
-                                </div>
-                            </div>
-                            
+
                             {/* 사용자 정보 - 인증 상태만 표시 */}
                             <div className="flex items-center">
                                 {isAuthenticated ? (
@@ -207,13 +179,7 @@ const Navigation = ({ isHidden = false }) => {
                         <div className="px-4 py-6 space-y-4">
                             {/* Mobile User Info */}
                             <div className="border-b border-white/10 pb-4 space-y-3">
-                                {/* 티켓 정보 */}
-                                <div className="bg-purple-500/15 border border-purple-500/30 rounded-lg px-4 py-3">
-                                    <div className="text-sm text-white font-medium">
-                                        {loading ? 'Loading...' : formatTicketInfo()}
-                                    </div>
-                                </div>
-                                
+
                                 {/* 사용자 정보 */}
                                 {isAuthenticated ? (
                                     <div className="flex items-center gap-3 bg-blue-500/15 border border-blue-500/30 rounded-lg px-4 py-3">
@@ -243,9 +209,9 @@ const Navigation = ({ isHidden = false }) => {
                                 </div>
 
                                 <div>
-                                    <div className="text-white font-semibold text-lg mb-2 px-2 uppercase tracking-wider">Guide</div>
+                                    <div className="text-white font-semibold text-lg mb-2 px-2 uppercase tracking-wider">TICKET BUY</div>
                                     <Link
-                                        to="/guide/survival"
+                                        to="/ticket/survival"
                                         className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500"
                                         onClick={closeMobileMenu}
                                     >

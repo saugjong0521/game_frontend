@@ -3,11 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navigation from './Navigation.jsx';
 import Home from './layout/Home.jsx';
 import GameLayout from './layout/GameLayout.jsx';
-import GuideLayout from './layout/GuideLayout.jsx';
 import LeaderboardLayout from './layout/LeaderboardLayout.jsx';
 import Game from './game/survival/Game.jsx';
 import MobileUseModal from './modal/MobileUseModal.jsx';
 import './App.css';
+import GameTicketBuy from './layout/GameTicketBuy.jsx';
 
 function App() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -146,8 +146,8 @@ function App() {
               </Route>
 
               {/* 가이드 관련 라우트 */}
-              <Route path="/guide" element={<GuideLayout />}>
-                <Route path="survival" element={<div>Survival Guide</div>} />
+              <Route path="/ticket" element={<GameTicketBuy />}>
+                <Route path="survival" element={<div>Survival Ticket</div>} />
               </Route>
 
               {/* 리더보드 관련 라우트 */}
