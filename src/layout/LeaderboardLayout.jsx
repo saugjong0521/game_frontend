@@ -16,9 +16,8 @@ const LeaderBoardLayout = () => {
         clearError
     } = useLeaderBoardStore();
     
-    // 현재 표시할 데이터 - 스토어에서 직접 가져오기
-    const leaderboardResponse = getCurrentData();
-    const leaderboardData = leaderboardResponse?.items || [];
+    // 현재 표시할 데이터 - 스토어에서 직접 가져오기 (배열 형태)
+    const leaderboardData = getCurrentData() || [];
 
     // 컴포넌트 마운트 시 항상 새로운 데이터 로드
     useEffect(() => {
@@ -44,10 +43,15 @@ const LeaderBoardLayout = () => {
         }
     };
 
-    // 지갑 주소 포맷팅
-    const formatAddress = (address) => {
-        if (!address) return 'Unknown';
-        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    // ID 포맷팅 (wallet_address 대신 id 사용)
+    const formatId = (id) => {
+        if (!id) return 'Unknown';
+        // ID가 지갑 주소 형태인 경우 포맷팅
+        if (id.length > 20 && id.startsWith('0x')) {
+            return `${id.slice(0, 6)}...${id.slice(-4)}`;
+        }
+        // 일반 ID인 경우 그대로 표시하거나 길면 줄임
+        return id.length > 12 ? `${id.slice(0, 8)}...${id.slice(-4)}` : id;
     };
 
     // 점수 포맷팅
@@ -132,25 +136,25 @@ const LeaderBoardLayout = () => {
                                         {currentType === 'TopScore' ? (
                                             <>
                                                 <th className="px-2 md:px-4 lg:px-6 py-3 md:py-4 text-center text-white font-semibold text-xs md:text-sm lg:text-base whitespace-nowrap">
-                                                    BEST SCORE
+                                                    SCORE
                                                 </th>
                                                 <th className="px-2 md:px-4 lg:px-6 py-3 md:py-4 text-center text-white font-semibold text-xs md:text-sm lg:text-base whitespace-nowrap">
-                                                    BEST LEVEL
+                                                    LEVEL
                                                 </th>
                                                 <th className="px-2 md:px-4 lg:px-6 py-3 md:py-4 text-center text-white font-semibold text-xs md:text-sm lg:text-base whitespace-nowrap">
-                                                    BEST KILL
+                                                    KILLS
                                                 </th>
                                             </>
                                         ) : (
                                             <>
                                                 <th className="px-2 md:px-4 lg:px-6 py-3 md:py-4 text-center text-white font-semibold text-xs md:text-sm lg:text-base whitespace-nowrap">
-                                                    TOTAL PLAYS
+                                                    PLAYS
                                                 </th>
                                                 <th className="px-2 md:px-4 lg:px-6 py-3 md:py-4 text-center text-white font-semibold text-xs md:text-sm lg:text-base whitespace-nowrap">
-                                                    BEST LEVEL
+                                                    LEVEL
                                                 </th>
                                                 <th className="px-2 md:px-4 lg:px-6 py-3 md:py-4 text-center text-white font-semibold text-xs md:text-sm lg:text-base whitespace-nowrap">
-                                                    BEST KILL
+                                                    KILLS
                                                 </th>
                                             </>
                                         )}
@@ -159,7 +163,7 @@ const LeaderBoardLayout = () => {
                                 <tbody>
                                     {leaderboardData.map((player, index) => (
                                         <tr 
-                                            key={player.wallet_address || index}
+                                            key={player.id || index}
                                             className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200"
                                         >
                                             <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4">
@@ -171,24 +175,24 @@ const LeaderBoardLayout = () => {
                                             </td>
                                             <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4">
                                                 <span className="text-white font-mono bg-white/10 px-1 md:px-2 lg:px-3 py-1 rounded text-xs md:text-sm">
-                                                    {formatAddress(player.wallet_address)}
+                                                    {formatId(player.id)}
                                                 </span>
                                             </td>
                                             {currentType === 'TopScore' ? (
                                                 <>
                                                     <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 text-center">
                                                         <span className="text-yellow-400 font-bold text-xs md:text-sm lg:text-base">
-                                                            {formatScore(player.best_score || player.score || 0)}
+                                                            {formatScore(player.score || 0)}
                                                         </span>
                                                     </td>
                                                     <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 text-center">
                                                         <span className="text-blue-400 font-semibold text-xs md:text-sm lg:text-base">
-                                                            {player.best_level || player.level || 0}
+                                                            {player.level || 0}
                                                         </span>
                                                     </td>
                                                     <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 text-center">
                                                         <span className="text-red-400 font-semibold text-xs md:text-sm lg:text-base">
-                                                            {player.best_kill || player.kill || 0}
+                                                            {player.kill || 0}
                                                         </span>
                                                     </td>
                                                 </>
@@ -196,17 +200,17 @@ const LeaderBoardLayout = () => {
                                                 <>
                                                     <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 text-center">
                                                         <span className="text-green-400 font-bold text-xs md:text-sm lg:text-lg">
-                                                            {formatScore(player.plays_count || player.plays)}
+                                                            {formatScore(player.play || 0)}
                                                         </span>
                                                     </td>
                                                     <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 text-center">
                                                         <span className="text-blue-400 font-semibold text-xs md:text-sm lg:text-base">
-                                                            {player.best_level || player.level || 0}
+                                                            {player.level || 0}
                                                         </span>
                                                     </td>
                                                     <td className="px-2 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 text-center">
                                                         <span className="text-red-400 font-semibold text-xs md:text-sm lg:text-base">
-                                                            {player.best_kill || player.kill || 0}
+                                                            {player.kill || 0}
                                                         </span>
                                                     </td>
                                                 </>
@@ -220,21 +224,9 @@ const LeaderBoardLayout = () => {
                 )}
 
                 {/* 데이터가 없을 때 */}
-                {!loading && !error && (!leaderboardResponse || !leaderboardData || leaderboardData.length === 0) && (
+                {!loading && !error && (!leaderboardData || leaderboardData.length === 0) && (
                     <div className="text-center py-8">
                         <p className="text-white/50 text-base">No leaderboard data available</p>
-                    </div>
-                )}
-
-                {/* API 응답 디버그 정보 */}
-                {!loading && !error && leaderboardResponse && !leaderboardResponse.items && (
-                    <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6">
-                        <p className="text-yellow-400 text-center">
-                            API response missing 'items' property
-                        </p>
-                        <pre className="text-xs text-white/60 mt-2 overflow-auto">
-                            {JSON.stringify(leaderboardResponse, null, 2)}
-                        </pre>
                     </div>
                 )}
 

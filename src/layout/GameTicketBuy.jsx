@@ -6,7 +6,7 @@ import { useGetUserInfo } from '../hooks/useGetUserInfo';
 const GameTicketBuy = () => {
   const [openSection, setOpenSection] = useState('overview');
   const navigate = useNavigate();
-  
+
   // 티켓 구매 훅
   const {
     loading: ticketLoading,
@@ -323,7 +323,7 @@ const GameTicketBuy = () => {
         {/* 티켓 구매 섹션 */}
         <div className="space-y-4 mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">Purchase Tickets</h3>
-          
+
           {/* ONE 티켓 */}
           <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4 border border-blue-500/30">
             <div className="flex items-center justify-between mb-3">
@@ -396,10 +396,11 @@ const GameTicketBuy = () => {
               </div>
             </div>
             <button
-              disabled={true}
-              className="w-full py-2 px-4 bg-gray-600 text-gray-400 font-semibold rounded-lg cursor-not-allowed"
+              onClick={() => handleBuyTicket('MONTH')}
+              disabled={ticketLoading}
+              className="w-full py-2 px-4 bg-red-700 hover:bg-red-800 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
             >
-              Coming Soon
+              {ticketLoading ? 'Processing...' : 'Buy MONTH Ticket'}
             </button>
           </div>
 

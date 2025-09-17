@@ -41,14 +41,84 @@ const Home = () => {
             if (signInResult !== false) {
                 // 2. 로그인 성공 시 사용자 정보 조회
                 console.log('Getting user info...');
+                console.log('Is authenticated:', isAuthenticated);
+                console.log('Making API call to getUserInfo()...');
+                
                 const userInfoResult = await getUserInfo();
-                console.log('User info result:', userInfoResult);
+                
+                console.log('User info API response:', userInfoResult);
+                console.log('User info from store:', userInfo);
+                
+                if (userInfoResult) {
+                    console.log('✅ Successfully retrieved user info');
+                } else {
+                    console.log('❌ Failed to retrieve user info');
+                }
+            } else {
+                console.log('❌ Sign in failed or returned false');
             }
         } catch (error) {
             console.error('Login process failed:', error);
         } finally {
             setIsLoggingIn(false);
         }
+    };
+
+    // 만료 날짜 포맷팅 함수
+    const formatExpiresAt = (expiresAt) => {
+        if (!expiresAt || expiresAt === 'string') return 'N/A';
+        try {
+            const date = new Date(expiresAt);
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return 'Invalid Date';
+        }
+    };
+
+    // 티켓 정보 렌더링 함수
+    const renderTicketInfo = (ticketType, bgColor, borderColor, dotColor) => {
+        // 새로운 API 구조에 맞춤: ticket_info는 직접 ONE 값과 expires_at을 포함
+        const ticketInfo = userInfo?.ticket_info;
+        
+        if (!ticketInfo || typeof ticketInfo[ticketType] === 'undefined') {
+            return (
+                <div className={`flex items-center justify-between p-3 bg-gradient-to-r ${bgColor} rounded-lg border ${borderColor}`}>
+                    <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 ${dotColor} rounded-full`}></div>
+                        <span className="text-white font-medium">{ticketType}</span>
+                    </div>
+                    <span className="text-gray-300 text-sm">없음</span>
+                </div>
+            );
+        }
+
+        const count = ticketInfo[ticketType] || 0;
+        const expiresAt = ticketInfo.expires_at;
+
+        return (
+            <div className={`flex flex-col p-3 bg-gradient-to-r ${bgColor} rounded-lg border ${borderColor}`}>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 ${dotColor} rounded-full`}></div>
+                        <span className="text-white font-medium">{ticketType}</span>
+                    </div>
+                    <span className="text-white text-lg font-bold">
+                        {count}
+                    </span>
+                </div>
+                {expiresAt && expiresAt !== null && (
+                    <div className="text-xs text-white/70">
+                        만료: {formatExpiresAt(expiresAt)}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const isLoading = signInLoading || userInfoLoading || isLoggingIn;
@@ -107,47 +177,27 @@ const Home = () => {
                             <h3 className="text-white/90 text-lg font-semibold mb-4">티켓 정보</h3>
                             
                             <div className="space-y-3">
-                                {/* ONE 티켓 */}
+                                {/* 횟수권 (ONE) */}
                                 <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                                        <span className="text-white font-medium">ONE</span>
+                                        <span className="text-white font-medium">횟수권</span>
                                     </div>
                                     <span className="text-blue-200 text-lg font-bold">
-                                        {userInfo.ticket_info?.ONE ?? 'N/A'}
+                                        {userInfo?.ticket_info?.ONE || 0}회
                                     </span>
                                 </div>
 
-                                {/* DAY 티켓 */}
+                                {/* 기간권 */}
                                 <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-lg border border-green-500/30">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                                        <span className="text-white font-medium">DAY</span>
+                                        <span className="text-white font-medium">기간권</span>
                                     </div>
-                                    <span className="text-green-200 text-lg font-bold">
-                                        {userInfo.ticket_info?.DAY ?? 'null'}
-                                    </span>
-                                </div>
-
-                                {/* WEEK 티켓 */}
-                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                                        <span className="text-white font-medium">WEEK</span>
-                                    </div>
-                                    <span className="text-yellow-200 text-lg font-bold">
-                                        {userInfo.ticket_info?.WEEK ?? 'null'}
-                                    </span>
-                                </div>
-
-                                {/* MONTH 티켓 */}
-                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-lg border border-red-500/30">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                                        <span className="text-white font-medium">MONTH</span>
-                                    </div>
-                                    <span className="text-red-200 text-lg font-bold">
-                                        {userInfo.ticket_info?.MONTH ?? 'null'}
+                                    <span className="text-green-200 text-sm">
+                                        {userInfo?.ticket_info?.expires_at && userInfo.ticket_info.expires_at !== null 
+                                            ? `${formatExpiresAt(userInfo.ticket_info.expires_at)}까지` 
+                                            : '없음'}
                                     </span>
                                 </div>
                             </div>

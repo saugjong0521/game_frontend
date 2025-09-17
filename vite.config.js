@@ -13,6 +13,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     allowedHosts: [
+      '172.31.98.30:5173/',
       'bbimt13.duckdns.org',
       'localhost',
     ]
