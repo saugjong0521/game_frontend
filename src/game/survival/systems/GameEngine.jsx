@@ -19,6 +19,13 @@ export default class GameEngine {
     this.camera = { x: 0, y: 0 };
     this.enemySpawnTimer = 0;
     this.attackTimer = 0;
+    
+    // 시간 기반 난이도 시스템
+    this.gameTime = 0; // 게임 시작으로부터 경과한 시간 (초)
+    this.currentSpawnRate = GameSetting.enemySpawn.baseSeconds;
+    
+    // 일시정지 시스템
+    this.isPaused = false;
 
     // 외부 입력(모바일 조이스틱 등)
     this.inputVector = { x: 0, y: 0 };
@@ -31,7 +38,7 @@ export default class GameEngine {
       maxHp: GameSetting.player.maxHp,
       speed: GameSetting.player.speed,
       attackSpeed: GameSetting.player.autoAttackSeconds,
-      damage: 25 // 기본 공격력
+      damage: GameSetting.player.damage, // 기본 공격력
     };
   }
 
@@ -40,6 +47,10 @@ export default class GameEngine {
       this.player = new Player(400, 300);
       // 플레이어 초기 스탯 적용
       this.applyStatsToPlayer();
+      // 게임 시간 초기화
+      this.gameTime = 0;
+      this.currentSpawnRate = GameSetting.enemySpawn.baseSeconds;
+      this.isPaused = false;
     } catch (error) {
       console.error('Error in GameEngine init:', error);
     }
@@ -56,6 +67,17 @@ export default class GameEngine {
   }
 
   update(deltaTime) {
+    // 일시정지 상태에서는 게임 로직 업데이트 중단
+    if (this.isPaused) {
+      return;
+    }
+
+    // 게임 시간 업데이트
+    this.gameTime += deltaTime;
+    
+    // 시간에 따른 스폰 속도 업데이트
+    this.updateSpawnRate();
+
     // 플레이어 업데이트
     this.updatePlayer(deltaTime);
 
@@ -90,6 +112,19 @@ export default class GameEngine {
     this.cleanupObjects();
   }
 
+  // 시간에 따른 스폰 속도 업데이트
+  updateSpawnRate() {
+    const scaling = GameSetting.timeScaling;
+    const intervals = Math.floor(this.gameTime / scaling.scalingInterval);
+    
+    // 스폰 속도 증가 (더 빠르게 스폰)
+    const spawnRateMultiplier = 1 - (intervals * scaling.spawnRateIncrease);
+    this.currentSpawnRate = Math.max(
+      scaling.maxSpawnRate,
+      GameSetting.enemySpawn.baseSeconds * spawnRateMultiplier
+    );
+  }
+
   updatePlayer(deltaTime) {
     let dx = 0, dy = 0;
 
@@ -117,7 +152,7 @@ export default class GameEngine {
   updateEnemySpawn(deltaTime) {
     this.enemySpawnTimer += deltaTime;
 
-    if (this.enemySpawnTimer >= GameSetting.enemySpawn.baseSeconds) {
+    if (this.enemySpawnTimer >= this.currentSpawnRate) {
       this.spawnEnemy();
       this.enemySpawnTimer = 0;
     }
@@ -130,10 +165,10 @@ export default class GameEngine {
     const x = this.player.x + Math.cos(angle) * distance;
     const y = this.player.y + Math.sin(angle) * distance;
 
-    // 확률에 따른 적 타입 결정
+    // 시간에 따른 적 타입 결정
     const type = this.getEnemyType();
 
-    // 레벨에 따른 속도, 체력, 데미지로 적 생성
+    // 시간에 따른 속도, 체력, 데미지로 적 생성
     const enemy = new Enemy(x, y, type);
     enemy.speed = this.getEnemySpeed(type);
     enemy.hp = this.getEnemyHp(type);
@@ -143,18 +178,15 @@ export default class GameEngine {
     this.enemies.push(enemy);
   }
 
-  // 확률에 따른 적 타입 결정 함수 (레벨 제한 포함)
+  // 시간에 따른 적 타입 결정 함수 (시간 제한 포함)
   getEnemyType() {
-    const stats = this.gameHandle.getStats();
-    const currentLevel = stats.level;
-    
-    // 현재 레벨에서 등장 가능한 적들만 필터링
+    // 현재 게임 시간에서 등장 가능한 적들만 필터링
     const availableEnemies = [];
     const probabilities = GameSetting.enemySpawn.probabilities;
     
     Object.keys(probabilities).forEach(enemyType => {
       const enemyData = GameSetting.enemies[enemyType];
-      if (enemyData && enemyData.level <= currentLevel) {
+      if (enemyData && this.gameTime >= enemyData.unlockTime) {
         availableEnemies.push({
           type: enemyType,
           probability: probabilities[enemyType]
@@ -186,33 +218,36 @@ export default class GameEngine {
     return availableEnemies[0].type;
   }
 
-  // 레벨별 몬스터 속도 계산 함수
+  // 시간 기반 몬스터 속도 계산 함수
   getEnemySpeed(enemyType) {
-    const stats = this.gameHandle.getStats();
     const baseSpeed = GameSetting.enemies[enemyType].speed;
-    const speedIncrease = GameSetting.levelScaling.enemySpeedPerLevel * (stats.level - 1);
+    const scaling = GameSetting.timeScaling;
+    const intervals = Math.floor(this.gameTime / scaling.scalingInterval);
+    const speedIncrease = scaling.enemySpeedPerInterval * intervals;
     return baseSpeed + speedIncrease;
   }
 
-  // 레벨별 몬스터 체력 계산 함수
+  // 시간 기반 몬스터 체력 계산 함수
   getEnemyHp(enemyType) {
-    const stats = this.gameHandle.getStats();
     const baseHp = GameSetting.enemies[enemyType].hp;
-    const hpIncrease = GameSetting.levelScaling.enemyHpPerLevel * (stats.level - 1);
+    const scaling = GameSetting.timeScaling;
+    const intervals = Math.floor(this.gameTime / scaling.scalingInterval);
+    const hpIncrease = scaling.enemyHpPerInterval * intervals;
     return baseHp + hpIncrease;
   }
 
-  // 레벨별 몬스터 데미지 계산 함수
+  // 시간 기반 몬스터 데미지 계산 함수
   getEnemyDamage(enemyType) {
-    const stats = this.gameHandle.getStats();
     const baseDamage = GameSetting.enemies[enemyType].contactDamage;
-    const damageIncrease = GameSetting.levelScaling.enemyDamagePerLevel * (stats.level - 1);
+    const scaling = GameSetting.timeScaling;
+    const intervals = Math.floor(this.gameTime / scaling.scalingInterval);
+    const damageIncrease = scaling.enemyDamagePerInterval * intervals;
     return baseDamage + damageIncrease;
   }
 
   // 레벨업시 체력 회복량 계산 함수
   getLevelUpHealAmount() {
-    return Math.floor(this.playerStats.maxHp * GameSetting.levelScaling.levelUpHealPercent);
+    return Math.floor(this.playerStats.maxHp * GameSetting.timeScaling.levelUpHealPercent);
   }
 
   updateAutoAttack(deltaTime) {
@@ -277,8 +312,8 @@ export default class GameEngine {
           attackObj.destroy();
 
           if (enemy.hp <= 0) {
-            // 적 사망 시 경험치 오브 생성 (타입별 색/크기/경험치량)
-            const dropExp = GameSetting.expDrop[enemy.type] ?? enemy.expValue;
+            // 적 사망 시 경험치 오브 생성 (enemies 설정의 exp 값 사용)
+            const dropExp = GameSetting.enemies[enemy.type]?.exp || enemy.expValue;
             const orbSkin = UI.expOrbPerEnemy[enemy.type] ?? UI.expOrb;
             this.expOrbs.push(new ExpOrb(enemy.x, enemy.y, dropExp, orbSkin));
             this.enemies.splice(eIndex, 1);
@@ -359,6 +394,7 @@ export default class GameEngine {
     
     return selectedCards;
   }
+
   applyStatUpgrade(cardType) {
     const cards = GameSetting.levelUpCards;
     
@@ -510,7 +546,7 @@ export default class GameEngine {
       maxHp: GameSetting.player.maxHp,
       speed: GameSetting.player.speed,
       attackSpeed: GameSetting.player.autoAttackSeconds,
-      damage: 25
+      damage: GameSetting.player.damage,
     };
 
     // 게임 오브젝트들 초기화
@@ -522,6 +558,11 @@ export default class GameEngine {
     this.expOrbs = [];
     this.enemySpawnTimer = 0;
     this.attackTimer = 0;
+    
+    // 게임 시간 초기화
+    this.gameTime = 0;
+    this.currentSpawnRate = GameSetting.enemySpawn.baseSeconds;
+    this.isPaused = false;
   }
 
   // 키 입력 설정
@@ -535,6 +576,28 @@ export default class GameEngine {
     this.inputVector.y = y;
   }
 
+  // 일시정지 제어 메서드들
+  pause() {
+    this.isPaused = true;
+  }
+
+  resume() {
+    this.isPaused = false;
+  }
+
+  togglePause() {
+    this.isPaused = !this.isPaused;
+  }
+
+  getPauseState() {
+    return this.isPaused;
+  }
+
+  // 현재 게임 시간 반환 (디버그 또는 UI 표시용)
+  getGameTime() {
+    return this.gameTime;
+  }
+
   destroy() {
     // 게임 오브젝트들 정리
     this.player = null;
@@ -543,5 +606,7 @@ export default class GameEngine {
     this.expOrbs = [];
     this.keys = {};
     this.inputVector = { x: 0, y: 0 };
+    this.gameTime = 0;
+    this.isPaused = false;
   }
 }

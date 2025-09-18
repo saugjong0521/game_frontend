@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import GameSetting from './setting/GameSetting.jsx';
 
 const GameModal = ({ 
   gameState, 
@@ -12,6 +13,26 @@ const GameModal = ({
   scoreLoading,
   scoreError 
 }) => {
+  
+  // gameState 변화에 따른 게임 일시정지/재개 처리
+  useEffect(() => {
+    if (gameHandleRef.current?.gameEngine) {
+      const gameEngine = gameHandleRef.current.gameEngine;
+      
+      // 모달이 표시되는 상태에서는 게임 일시정지
+      if (gameState === 'levelup' || gameState === 'paused' || gameState === 'gameover') {
+        if (typeof gameEngine.pause === 'function') {
+          gameEngine.pause();
+        }
+      } 
+      // playing 상태로 돌아갈 때는 게임 재개
+      else if (gameState === 'playing') {
+        if (typeof gameEngine.resume === 'function') {
+          gameEngine.resume();
+        }
+      }
+    }
+  }, [gameState, gameHandleRef]);
   
   if (gameState === 'playing') return null;
 
@@ -96,38 +117,11 @@ const GameModal = ({
             {/* Stat Cards - 3개만 랜덤 선택 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {(() => {
-                const levelUpCards = {
-                  health: {
-                    name: "체력 증가",
-                    description: "최대 체력이 10 증가합니다",
-                    icon: "❤️",
-                    color: "from-red-500 to-red-700"
-                  },
-                  speed: {
-                    name: "이동속도 증가", 
-                    description: "이동속도가 15 증가합니다",
-                    icon: "💨",
-                    color: "from-blue-500 to-blue-700"
-                  },
-                  attackSpeed: {
-                    name: "공격속도 증가",
-                    description: "공격 간격이 0.05초 감소합니다",
-                    icon: "⚡",
-                    color: "from-yellow-500 to-yellow-700"
-                  },
-                  damage: {
-                    name: "공격력 증가",
-                    description: "공격력이 5 증가합니다", 
-                    icon: "⚔️",
-                    color: "from-orange-500 to-orange-700"
-                  }
-                };
-                
                 // GameEngine에서 랜덤 카드 3개 생성
                 const selectedCardTypes = gameHandleRef.current?.gameEngine?.generateLevelUpCards() || ['health', 'speed', 'damage'];
                 
                 return selectedCardTypes.map((cardType) => {
-                  const card = levelUpCards[cardType];
+                  const card = GameSetting.levelUpCards[cardType];
                   return (
                     <div 
                       key={cardType}

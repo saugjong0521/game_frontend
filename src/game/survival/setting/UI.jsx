@@ -1,4 +1,4 @@
-import { dico, dicoMove_1, dicoMove_2, dicoMove_3, dicoMove_4, dicoMove_5, bat, blueslime, greenslime, map, attack } from "@/assets";
+import { dico, dicoMove_1, dicoMove_2, dicoMove_3, dicoMove_4, dicoMove_5, bat, wolf, blueslime, greenslime, map, attack } from "@/assets";
 
 const dicoImage = new Image();
 const dicoMoveImages = [];
@@ -7,6 +7,7 @@ const blueslimeImg = new Image();
 const greenslimeImg = new Image();
 const mapImage = new Image();
 const attackImage = new Image();
+const wolfImage = new Image();
 
 dicoImage.src = dico;
 
@@ -27,6 +28,7 @@ blueslimeImg.src = blueslime;
 greenslimeImg.src = greenslime;
 mapImage.src = map;
 attackImage.src = attack;
+wolfImage.src = wolf;
 
 // UI settings (images, sizes, colors)
 const UI = {
@@ -72,7 +74,7 @@ const UI = {
         renderHeight: 36
       }
     },
-    eyeball: {
+    blueslime: {
       color: '#9C27B0',
       imagePath: blueslimeImg,
       // blueslime 스프라이트 설정 (43*36, 7px 간격)
@@ -85,7 +87,7 @@ const UI = {
         renderHeight: 36
       }
     },
-    dog: {
+    greenslime: {
       color: '#FF9800',
       imagePath: greenslimeImg,
       // greenslime 스프라이트 설정 (41*36, 12px 간격)
@@ -96,6 +98,19 @@ const UI = {
         animationSpeed: 0.22, // 애니메이션 속도
         renderWidth: 41,      // 실제 이미지 크기 (간격 제외)
         renderHeight: 36
+      }
+    },
+    wolf: {
+      color: '#3568de',
+      imagePath: wolfImage,
+      // greenslime 스프라이트 설정 (41*36, 12px 간격)
+      spriteSheet: {
+        frameWidth: 66,       // 41 + 12 = 53px (이미지 + 간격)
+        frameHeight: 40,      // 프레임 높이
+        totalFrames: 4,       // 총 프레임 수
+        animationSpeed: 0.12, // 애니메이션 속도
+        renderWidth: 64,      // 실제 이미지 크기 (간격 제외)
+        renderHeight: 40
       }
     }
   },
@@ -123,14 +138,19 @@ const UI = {
       strokeColor: '#1E88E5',
       radius: 7
     },
-    eyeball: {
+    blueslime: {
       fillColor: '#CE93D8',
       strokeColor: '#8E24AA',
       radius: 8
     },
-    dog: {
+    greenslime: {
       fillColor: '#FFCC80',
       strokeColor: '#FB8C00',
+      radius: 9
+    },
+    wolf: {
+      fillColor: '#f6f998',
+      strokeColor: '#eeff57',
       radius: 9
     }
   },

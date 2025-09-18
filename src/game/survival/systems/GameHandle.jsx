@@ -11,6 +11,7 @@ export default class GameHandle {
     this.lastTime = 0;
     this.deltaTime = 0;
     this.gameStartTime = 0;
+    this.elapsedTime = 0; // 누적 진행 시간(재생 중에만 증가)
 
     // 테스트 모드 플래그
     this.isTestMode = false;
@@ -56,7 +57,9 @@ export default class GameHandle {
         this.gameEngine.update(this.deltaTime);
         this.gameEngine.render();
 
-        this.stats.time = Math.floor((currentTime - this.gameStartTime) / 1000);
+        // 일시정지/레벨업 동안은 시간이 증가하지 않도록 누적
+        this.elapsedTime += this.deltaTime;
+        this.stats.time = Math.floor(this.elapsedTime);
         this.callbacks.onStatsUpdate({ ...this.stats });
       }
     } catch (error) {
@@ -71,6 +74,7 @@ export default class GameHandle {
 
     // 게임 시작 시 시간 초기화
     this.gameStartTime = performance.now();
+    this.elapsedTime = 0;
 
     // 게임 시작 시 stats 초기화
     this.stats = {

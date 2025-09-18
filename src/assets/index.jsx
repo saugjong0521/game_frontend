@@ -5,6 +5,7 @@ import { map } from './images'
 import { greenslime } from './images'
 import { blueslime } from './images'
 import { attack } from './images'
+import { wolf } from './images'
 
 import {
     dicoMove_1,
@@ -22,6 +23,7 @@ export {
     greenslime,
     blueslime,
     attack,
+    wolf,
 
     dicoMove_1,
     dicoMove_2,

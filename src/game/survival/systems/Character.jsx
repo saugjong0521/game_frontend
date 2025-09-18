@@ -125,20 +125,27 @@ export class Enemy {
       this.maxHp = GameSetting.enemies.bat.hp;
       this.expValue = GameSetting.enemies.bat.exp;
       this.contactDamage = GameSetting.enemies.bat.contactDamage;
-    } else if (type === 'eyeball') {
+    } else if (type === 'blueslime') {
       this.radius = 14;
-      this.speed = GameSetting.enemies.eyeball.speed;
-      this.hp = GameSetting.enemies.eyeball.hp;
-      this.maxHp = GameSetting.enemies.eyeball.hp;
-      this.expValue = GameSetting.enemies.eyeball.exp;
-      this.contactDamage = GameSetting.enemies.eyeball.contactDamage;
-    } else if (type === 'dog') {
+      this.speed = GameSetting.enemies.blueslime.speed;
+      this.hp = GameSetting.enemies.blueslime.hp;
+      this.maxHp = GameSetting.enemies.blueslime.hp;
+      this.expValue = GameSetting.enemies.blueslime.exp;
+      this.contactDamage = GameSetting.enemies.blueslime.contactDamage;
+    } else if (type === 'greenslime') {
       this.radius = 10;
-      this.speed = GameSetting.enemies.dog.speed;
-      this.hp = GameSetting.enemies.dog.hp;
-      this.maxHp = GameSetting.enemies.dog.hp;
-      this.expValue = GameSetting.enemies.dog.exp;
-      this.contactDamage = GameSetting.enemies.dog.contactDamage;
+      this.speed = GameSetting.enemies.greenslime.speed;
+      this.hp = GameSetting.enemies.greenslime.hp;
+      this.maxHp = GameSetting.enemies.greenslime.hp;
+      this.expValue = GameSetting.enemies.greenslime.exp;
+      this.contactDamage = GameSetting.enemies.greenslime.contactDamage;
+    } else if (type === 'wolf') {
+      this.radius = 16;
+      this.speed = GameSetting.enemies.wolf.speed;
+      this.hp = GameSetting.enemies.wolf.hp;
+      this.maxHp = GameSetting.enemies.wolf.hp;
+      this.expValue = GameSetting.enemies.wolf.exp;
+      this.contactDamage = GameSetting.enemies.wolf.contactDamage;
     } else {
       this.radius = 12;
       this.speed = 80;
@@ -158,13 +165,17 @@ export class Enemy {
       this.x += (dx / distance) * this.speed * deltaTime;
       this.y += (dy / distance) * this.speed * deltaTime;
 
-      // dog: 플레이어를 기준으로 오른쪽에 있으면 왼쪽을 바라보도록
-      if (this.type === 'dog') {
+      // greenslime: 플레이어를 기준으로 오른쪽에 있으면 왼쪽을 바라보도록
+      if (this.type === 'greenslime') {
         this.facingDirection = (this.x > player.x) ? -1 : 1;
       }
       // bat: 이동 방향에 따라 좌우 반전
       else if (this.type === 'bat') {
         this.facingDirection = dx > 0 ? 1 : -1;
+      }
+      // wolf: 플레이어를 기준으로 좌우 반전
+      else if (this.type === 'wolf') {
+        this.facingDirection = (this.x > player.x) ? -1 : 1;
       }
     }
 
@@ -197,13 +208,21 @@ export class Enemy {
       const sourceX = this.currentFrame * sprite.frameWidth;
       const sourceY = 0;
 
-      // 렌더링 크기 (실제 스프라이트 크기에 맞춰 조정)
-      const renderSize = Math.max(sprite.renderWidth, sprite.renderHeight);
+      // 렌더링 크기 (wolf는 원본 비율 유지, 다른 적들은 정사각형)
+      let renderWidth, renderHeight;
+      if (this.type === 'wolf') {
+        renderWidth = sprite.renderWidth;
+        renderHeight = sprite.renderHeight;
+      } else {
+        const renderSize = Math.max(sprite.renderWidth, sprite.renderHeight);
+        renderWidth = renderSize;
+        renderHeight = renderSize;
+      }
 
       ctx.save();
       ctx.translate(this.x, this.y);
 
-      if ((this.type === 'bat' || this.type === 'dog') && this.facingDirection === -1) {
+      if ((this.type === 'bat' || this.type === 'greenslime' || this.type === 'wolf') && this.facingDirection === -1) {
         ctx.scale(-1, 1);
       }
 
@@ -212,8 +231,8 @@ export class Enemy {
         img,
         sourceX, sourceY,                         // 소스 위치
         sprite.renderWidth, sprite.renderHeight,  // 소스 크기
-        -renderSize / 2, -renderSize / 2,         // 대상 위치 (중앙 정렬)
-        renderSize, renderSize                    // 대상 크기 (정사각형으로 유지)
+        -renderWidth / 2, -renderHeight / 2,      // 대상 위치 (중앙 정렬)
+        renderWidth, renderHeight                 // 대상 크기 (wolf는 원본 비율 유지)
       );
 
       ctx.restore();
