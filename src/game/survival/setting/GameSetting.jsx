@@ -7,9 +7,9 @@ const GameSetting = {
     autoAttackSeconds: 1.0
   },
   enemies: {
-    bat: { contactDamage: 10, hp: 20, speed: 70, exp: 10 },
-    eyeball: { contactDamage: 15, hp: 40, speed: 50, exp: 15 },
-    dog: { contactDamage: 20, hp: 25, speed: 100, exp: 12 }
+    bat: { contactDamage: 10, hp: 20, speed: 70, exp: 10, level: 1 },
+    eyeball: { contactDamage: 15, hp: 40, speed: 50, exp: 15, level: 2 },
+    dog: { contactDamage: 20, hp: 25, speed: 100, exp: 12, level: 4 }
   },
   // 적 타입별로 드랍되는 경험치량 (UI 색과는 분리)
   expDrop: {

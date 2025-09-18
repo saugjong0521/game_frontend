@@ -143,14 +143,47 @@ export default class GameEngine {
     this.enemies.push(enemy);
   }
 
-  // 확률에 따른 적 타입 결정 함수
+  // 확률에 따른 적 타입 결정 함수 (레벨 제한 포함)
   getEnemyType() {
+    const stats = this.gameHandle.getStats();
+    const currentLevel = stats.level;
+    
+    // 현재 레벨에서 등장 가능한 적들만 필터링
+    const availableEnemies = [];
     const probabilities = GameSetting.enemySpawn.probabilities;
+    
+    Object.keys(probabilities).forEach(enemyType => {
+      const enemyData = GameSetting.enemies[enemyType];
+      if (enemyData && enemyData.level <= currentLevel) {
+        availableEnemies.push({
+          type: enemyType,
+          probability: probabilities[enemyType]
+        });
+      }
+    });
+    
+    // 사용 가능한 적이 없으면 기본적으로 bat 반환
+    if (availableEnemies.length === 0) {
+      return 'bat';
+    }
+    
+    // 확률 정규화 (사용 가능한 적들의 확률 합이 1이 되도록)
+    const totalProbability = availableEnemies.reduce((sum, enemy) => sum + enemy.probability, 0);
+    
     const roll = Math.random();
-
-    if (roll < probabilities.bat) return 'bat';
-    else if (roll < probabilities.bat + probabilities.eyeball) return 'eyeball';
-    else return 'dog';
+    let cumulativeProbability = 0;
+    
+    for (const enemy of availableEnemies) {
+      const normalizedProbability = enemy.probability / totalProbability;
+      cumulativeProbability += normalizedProbability;
+      
+      if (roll <= cumulativeProbability) {
+        return enemy.type;
+      }
+    }
+    
+    // 폴백: 첫 번째 사용 가능한 적 반환
+    return availableEnemies[0].type;
   }
 
   // 레벨별 몬스터 속도 계산 함수
