@@ -6,27 +6,27 @@ const GameSetting = {
     speed: 200,
     autoAttackSeconds: 1.0,
     damage: 25,
+    levelUpHealPercent: 0.1     // 레벨업시 체력 회복 비율 (10%)
   },
   enemies: {
     bat: { contactDamage: 10, hp: 20, speed: 70, exp: 10, unlockTime: 0 },
     blueslime: { contactDamage: 15, hp: 40, speed: 50, exp: 15, unlockTime: 30 },
-    greenslime: { contactDamage: 20, hp: 25, speed: 90, exp: 12, unlockTime: 90 },
-    wolf: { contactDamage: 30, hp: 30, speed: 130, exp: 18, unlockTime: 180 }
+    greenslime: { contactDamage: 20, hp: 25, speed: 90, exp: 12, unlockTime: 60 },
+    wolf: { contactDamage: 30, hp: 30, speed: 130, exp: 18, unlockTime: 120 }
   },
   exp: {
-    baseToLevel: 50,
+    baseToLevel: 60,
     perLevelIncrement: 12
   },
   
   // 시간 기반 스케일링 시스템
   timeScaling: {
-    scalingInterval: 30,        // 30초마다 난이도 증가
+    scalingInterval: 20,        // 30초마다 난이도 증가
     enemySpeedPerInterval: 8,   // 주기당 몬스터 속도 증가량
     enemyHpPerInterval: 5,      // 주기당 몬스터 체력 증가량
     enemyDamagePerInterval: 3,  // 주기당 몬스터 데미지 증가량
     spawnRateIncrease: 0.05,    // 주기당 스폰 속도 증가 (5% 더 빨리)
     maxSpawnRate: 0.2,          // 최소 스폰 간격 (초)
-    levelUpHealPercent: 0.1     // 레벨업시 체력 회복 비율 (10%)
   },
   
   enemySpawn: {

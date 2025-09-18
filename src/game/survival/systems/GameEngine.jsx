@@ -247,7 +247,7 @@ export default class GameEngine {
 
   // 레벨업시 체력 회복량 계산 함수
   getLevelUpHealAmount() {
-    return Math.floor(this.playerStats.maxHp * GameSetting.timeScaling.levelUpHealPercent);
+    return Math.floor(this.playerStats.maxHp * GameSetting.player.levelUpHealPercent);
   }
 
   updateAutoAttack(deltaTime) {
@@ -335,13 +335,21 @@ export default class GameEngine {
           const newLevel = stats.level + 1;
           const newMaxExp = stats.maxExp + GameSetting.exp.perLevelIncrement;
 
+          // 초과 경험치 이월
+          let carriedExp = newExp - stats.maxExp;
+          // 다음 레벨을 즉시 또 올리는 것은 여기서 처리하지 않음(선택 화면 1회 노출)
+          // 과도한 이월로 즉시 재레벨업 방지용 클램프
+          if (carriedExp >= newMaxExp) {
+            carriedExp = newMaxExp - 1;
+          }
+
           // 레벨업 시 체력 회복
           const healAmount = this.getLevelUpHealAmount();
           this.player.hp = Math.min(this.player.hp + healAmount, this.playerStats.maxHp);
 
           this.gameHandle.onStatsChange({
             level: newLevel,
-            exp: 0,
+            exp: carriedExp,
             maxExp: newMaxExp,
             hp: this.player.hp,
             maxHp: this.playerStats.maxHp // 현재 최대 체력도 업데이트
