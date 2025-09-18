@@ -2,31 +2,19 @@
 import GameSetting from '../setting/GameSetting.jsx';
 import UI from '../setting/UI.jsx';
 import { Player, Enemy } from './Character.jsx';
-import { AttackObj, ExpOrb } from './Play.jsx'
+import { AttackObj, ExpOrb } from './Play.jsx';
 
 export default class GameEngine {
-  constructor(canvas, callbacks) {
+  constructor(canvas, gameHandle) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.callbacks = callbacks;
-
-    this.gameState = 'menu';
-    this.lastTime = 0;
-    this.deltaTime = 0;
-    this.gameStartTime = 0; // 게임 시작 시점 추가
-
-    // 테스트 모드 플래그 (클로저 문제 해결을 위한 확실한 방법)
-    this.isTestMode = false;
+    this.gameHandle = gameHandle;
 
     // 게임 오브젝트들
     this.player = null;
     this.enemies = [];
     this.attackObjs = [];
     this.expOrbs = [];
-
-    // 게임 통계 - 초기값은 null로 설정
-    this.stats = null;
-    this.finalStats = null; // 게임 종료 시 저장될 최종 stats
 
     this.camera = { x: 0, y: 0 };
     this.enemySpawnTimer = 0;
@@ -37,73 +25,39 @@ export default class GameEngine {
 
     // 키보드 입력
     this.keys = {};
-    this.setupEventListeners();
   }
 
   init() {
     try {
       this.player = new Player(400, 300);
-      this.gameLoop();
     } catch (error) {
       console.error('Error in GameEngine init:', error);
     }
   }
 
-  setupEventListeners() {
-    document.addEventListener('keydown', (e) => {
-      this.keys[e.key.toLowerCase()] = true;
-      if (e.key === 'Escape' && this.gameState === 'playing') {
-        this.pauseGame();
-      }
-    });
-
-    document.addEventListener('keyup', (e) => {
-      this.keys[e.key.toLowerCase()] = false;
-    });
-  }
-
-  gameLoop = (currentTime) => {
-    try {
-      this.deltaTime = (currentTime - this.lastTime) / 1000;
-      this.lastTime = currentTime;
-
-      if (this.gameState === 'playing' && this.stats) {
-        this.update();
-        this.render();
-
-        this.stats.time = Math.floor((currentTime - this.gameStartTime) / 1000);
-        this.callbacks.onStatsUpdate({ ...this.stats });
-      }
-    } catch (error) {
-      console.error('Error in game loop:', error);
-    }
-
-    requestAnimationFrame(this.gameLoop);
-  };
-
-  update() {
+  update(deltaTime) {
     // 플레이어 업데이트
-    this.updatePlayer();
+    this.updatePlayer(deltaTime);
 
     // 적 스폰
-    this.updateEnemySpawn();
+    this.updateEnemySpawn(deltaTime);
 
     // 적들 업데이트
     this.enemies.forEach(enemy => {
-      enemy.update(this.deltaTime, this.player);
+      enemy.update(deltaTime, this.player);
     });
 
     // 자동 공격
-    this.updateAutoAttack();
+    this.updateAutoAttack(deltaTime);
 
     // 발사체 업데이트
     this.attackObjs.forEach(attackObj => {
-      attackObj.update(this.deltaTime);
+      attackObj.update(deltaTime);
     });
 
     // 경험치 오브 업데이트
     this.expOrbs.forEach(orb => {
-      orb.update(this.deltaTime, this.player);
+      orb.update(deltaTime, this.player);
     });
 
     // 충돌 검사
@@ -116,7 +70,7 @@ export default class GameEngine {
     this.cleanupObjects();
   }
 
-  updatePlayer() {
+  updatePlayer(deltaTime) {
     let dx = 0, dy = 0;
 
     if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
@@ -137,11 +91,11 @@ export default class GameEngine {
       dy /= mag;
     }
 
-    this.player.move(dx, dy, this.deltaTime);
+    this.player.move(dx, dy, deltaTime);
   }
 
-  updateEnemySpawn() {
-    this.enemySpawnTimer += this.deltaTime;
+  updateEnemySpawn(deltaTime) {
+    this.enemySpawnTimer += deltaTime;
 
     if (this.enemySpawnTimer >= GameSetting.enemySpawn.baseSeconds) {
       this.spawnEnemy();
@@ -177,18 +131,20 @@ export default class GameEngine {
 
   // 레벨별 몬스터 속도 계산 함수
   getEnemySpeed(enemyType) {
+    const stats = this.gameHandle.getStats();
     const baseSpeed = GameSetting.enemies[enemyType].speed;
-    const speedIncrease = GameSetting.levelScaling.enemySpeedPerLevel * (this.stats.level - 1);
+    const speedIncrease = GameSetting.levelScaling.enemySpeedPerLevel * (stats.level - 1);
     return baseSpeed + speedIncrease;
   }
 
   // 레벨업시 체력 회복량 계산 함수
   getLevelUpHealAmount() {
-    return Math.floor(this.stats.maxHp * GameSetting.levelScaling.levelUpHealPercent);
+    const stats = this.gameHandle.getStats();
+    return Math.floor(stats.maxHp * GameSetting.levelScaling.levelUpHealPercent);
   }
 
-  updateAutoAttack() {
-    this.attackTimer += this.deltaTime;
+  updateAutoAttack(deltaTime) {
+    this.attackTimer += deltaTime;
 
     if (this.attackTimer >= GameSetting.autoAttackSeconds) {
       this.autoAttack();
@@ -223,19 +179,16 @@ export default class GameEngine {
   }
 
   handleCollisions() {
+    const stats = this.gameHandle.getStats();
+
     // 플레이어와 적 충돌
     this.enemies.forEach(enemy => {
       if (this.checkCollision(this.player, enemy)) {
         if (this.player.tryTakeHit(enemy.contactDamage)) {
-          this.stats.hp = this.player.hp;
-          this.callbacks.onStatsUpdate({ ...this.stats });
+          this.gameHandle.onStatsChange({ hp: this.player.hp });
           if (this.player.hp <= 0) {
-            // 최종 stats 저장 (현재 stats의 스냅샷)
-            this.finalStats = { ...this.stats };
-            console.log('Player died - Final stats saved:', this.finalStats);
-            console.log('Test mode flag at death:', this.isTestMode);
-            this.gameState = 'gameover';
-            this.callbacks.onStateChange('gameover');
+            this.gameHandle.onPlayerDeath();
+            return;
           }
         }
       }
@@ -254,8 +207,7 @@ export default class GameEngine {
             const orbSkin = UI.expOrbPerEnemy[enemy.type] ?? UI.expOrb;
             this.expOrbs.push(new ExpOrb(enemy.x, enemy.y, dropExp, orbSkin));
             this.enemies.splice(eIndex, 1);
-            this.stats.kills += 1;
-            this.callbacks.onStatsUpdate({ ...this.stats });
+            this.gameHandle.onStatsChange({ kills: stats.kills + 1 });
           }
         }
       });
@@ -264,46 +216,30 @@ export default class GameEngine {
     // 플레이어와 경험치 오브 충돌
     this.expOrbs.forEach((orb, index) => {
       if (this.checkCollision(this.player, orb)) {
-        this.stats.exp += orb.value;
+        const newExp = stats.exp + orb.value;
         this.expOrbs.splice(index, 1);
-        this.callbacks.onStatsUpdate({ ...this.stats });
+        this.gameHandle.onStatsChange({ exp: newExp });
 
         // 레벨업 체크
-        if (this.stats.exp >= this.stats.maxExp) {
-          this.stats.level += 1;
-          this.stats.exp = 0;
-          this.stats.maxExp += GameSetting.exp.perLevelIncrement;
+        if (newExp >= stats.maxExp) {
+          const newLevel = stats.level + 1;
+          const newMaxExp = stats.maxExp + GameSetting.exp.perLevelIncrement;
 
           // 레벨업 시 체력 회복
           const healAmount = this.getLevelUpHealAmount();
-          this.player.hp = Math.min(this.player.hp + healAmount, this.stats.maxHp);
-          this.stats.hp = this.player.hp;
+          this.player.hp = Math.min(this.player.hp + healAmount, stats.maxHp);
 
-          this.callbacks.onStatsUpdate({ ...this.stats });
-          this.gameState = 'levelup';
-          this.callbacks.onStateChange('levelup');
+          this.gameHandle.onStatsChange({
+            level: newLevel,
+            exp: 0,
+            maxExp: newMaxExp,
+            hp: this.player.hp
+          });
+
+          this.gameHandle.onLevelUp();
         }
       }
     });
-  }
-
-  getFinalStats() {
-    // finalStats가 있고 유효한 게임 진행이 있었는지 확인
-    if (this.finalStats && (this.finalStats.kills > 0 || this.finalStats.level > 1 || this.finalStats.time > 5)) {
-      return this.finalStats;
-    }
-
-    // 현재 stats가 있고 유효한 게임 진행이 있었는지 확인
-    if (this.stats && (this.stats.kills > 0 || this.stats.level > 1 || this.stats.time > 5)) {
-      return this.stats;
-    }
-
-    return null;
-  }
-
-  // 게임이 진행 중인지 확인하는 메서드 추가
-  isGameActive() {
-    return this.gameState === 'playing' && this.stats !== null;
   }
 
   checkCollision(obj1, obj2) {
@@ -418,26 +354,8 @@ export default class GameEngine {
     this.ctx.globalAlpha = 1.0; // 투명도 복원
   }
 
+  // 게임 시작 시 호출
   startGame() {
-    console.log('Starting game with test mode:', this.isTestMode);
-
-    // 게임 시작 시 시간 초기화
-    this.gameStartTime = performance.now();
-
-    // 게임 시작 시 stats 초기화
-    this.stats = {
-      level: 1,
-      kills: 0,
-      time: 0,
-      hp: GameSetting.player.maxHp,
-      maxHp: GameSetting.player.maxHp,
-      exp: 0,
-      maxExp: GameSetting.exp.baseToLevel
-    };
-
-    // 이전 게임의 finalStats 완전히 초기화
-    this.finalStats = null;
-
     // 게임 오브젝트들 초기화
     this.player = new Player(400, 300);
     this.enemies = [];
@@ -445,32 +363,26 @@ export default class GameEngine {
     this.expOrbs = [];
     this.enemySpawnTimer = 0;
     this.attackTimer = 0;
-
-    this.gameState = 'playing';
-    this.callbacks.onStateChange('playing');
-    this.callbacks.onStatsUpdate({ ...this.stats });
   }
 
-  pauseGame() {
-    this.gameState = 'paused';
-    this.callbacks.onStateChange('paused');
+  // 키 입력 설정
+  setKey(key, value) {
+    this.keys[key] = value;
   }
 
-  resumeGame() {
-    this.gameState = 'playing';
-    this.callbacks.onStateChange('playing');
-  }
-
-  levelUp() {
-    this.gameState = 'playing';
-    this.callbacks.onStateChange('playing');
+  // 외부 입력 설정 (모바일 조이스틱 등)
+  setInputVector(x, y) {
+    this.inputVector.x = x;
+    this.inputVector.y = y;
   }
 
   destroy() {
-    // 정리 작업
-    this.finalStats = null;
-    this.stats = null;
-    this.gameStartTime = 0;
-    this.isTestMode = false;
+    // 게임 오브젝트들 정리
+    this.player = null;
+    this.enemies = [];
+    this.attackObjs = [];
+    this.expOrbs = [];
+    this.keys = {};
+    this.inputVector = { x: 0, y: 0 };
   }
 }

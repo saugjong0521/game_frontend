@@ -1,15 +1,15 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import UI from './setting/UI.jsx';
 import PlayerSetting from './setting/PlayerSetting.jsx';
-import GameEngine from './systems/GameEngine.jsx';
+import GameHandle from './systems/GameHandle.jsx';
 import { ArrowPad, Joystick } from './systems/GameControl.jsx';
 import { useGameStart } from '../../hooks/useGameStart.jsx';
 import { useGameScorePost } from '../../hooks/useGameScorePost.jsx';
+import SettingModal from './SettingModal.jsx';
 
 const Game = () => {
   const canvasRef = useRef(null);
-  const gameEngineRef = useRef(null);
+  const gameHandleRef = useRef(null);
   const [gameState, setGameState] = useState('menu');
 
   // 간단한 화면 회전 감지
@@ -81,16 +81,14 @@ const Game = () => {
     };
   }, []);
 
-  // React state 완전히 무시하고 게임 엔진 플래그만 사용하여 클로저 문제 완전 해결
+  // React state 완전히 무시하고 게임 핸들 플래그만 사용하여 클로저 문제 완전 해결
   const handleStateChange = useCallback(async (newState) => {
-    const isTestMode = gameEngineRef.current?.isTestMode === true;
+    const isTestMode = gameHandleRef.current?.isTestMode === true;
     
-    console.log('State change:', newState, 'Engine test mode:', isTestMode);
-
     setGameState(newState);
 
     if (newState === 'gameover') {
-      console.log('Game over detected - engine test mode:', isTestMode);
+      console.log('Game over detected - handle test mode:', isTestMode);
       
       if (isTestMode) {
         console.log('🚫 TEST MODE - No score saved');
@@ -99,7 +97,7 @@ const Game = () => {
       
       // 테스트 모드가 아닐 때만 점수 저장
       console.log('Normal mode - attempting to save score');
-      const finalStats = gameEngineRef.current?.getFinalStats();
+      const finalStats = gameHandleRef.current?.getFinalStats();
       if (finalStats && (finalStats.kills > 0 || finalStats.level > 1 || finalStats.time > 5)) {
         console.log('Saving score for normal mode:', finalStats);
         try {
@@ -118,16 +116,16 @@ const Game = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gameEngine = new GameEngine(canvas, {
+    const gameHandle = new GameHandle(canvas, {
       onStateChange: handleStateChange,
       onStatsUpdate: setGameStats
     });
 
-    gameEngineRef.current = gameEngine;
-    gameEngine.init();
+    gameHandleRef.current = gameHandle;
+    gameHandle.init();
 
     return () => {
-      gameEngine.destroy();
+      gameHandle.destroy();
     };
   }, []);
 
@@ -135,15 +133,15 @@ const Game = () => {
     try {
       console.log('Starting normal game...');
       
-      // 게임 엔진에 명시적으로 normal 모드 설정
-      if (gameEngineRef.current) {
-        gameEngineRef.current.isTestMode = false;
+      // 게임 핸들에 명시적으로 normal 모드 설정
+      if (gameHandleRef.current) {
+        gameHandleRef.current.isTestMode = false;
       }
 
       const gameSession = await apiStartGame();
       if (gameSession) {
-        console.log('Game session created, starting game engine');
-        gameEngineRef.current?.startGame();
+        console.log('Game session created, starting game handle');
+        gameHandleRef.current?.startGame();
       } else {
         console.error('Failed to create game session');
       }
@@ -155,13 +153,13 @@ const Game = () => {
   const startTestGame = () => {
     console.log('Starting test game...');
     
-    // 게임 엔진에 명시적으로 test 모드 설정
-    if (gameEngineRef.current) {
-      gameEngineRef.current.isTestMode = true;
+    // 게임 핸들에 명시적으로 test 모드 설정
+    if (gameHandleRef.current) {
+      gameHandleRef.current.isTestMode = true;
       console.log('Test mode flag set, starting game...');
-      gameEngineRef.current.startGame();
+      gameHandleRef.current.startGame();
     } else {
-      console.error('Game engine not initialized!');
+      console.error('Game handle not initialized!');
     }
   };
 
@@ -179,29 +177,29 @@ const Game = () => {
       maxExp: 50
     });
 
-    if (gameEngineRef.current) {
+    if (gameHandleRef.current) {
       const canvas = canvasRef.current;
       if (canvas) {
-        const gameEngine = new GameEngine(canvas, {
+        const gameHandle = new GameHandle(canvas, {
           onStateChange: handleStateChange,
           onStatsUpdate: setGameStats
         });
-        gameEngineRef.current = gameEngine;
-        gameEngine.init();
+        gameHandleRef.current = gameHandle;
+        gameHandle.init();
       }
     }
   };
 
   const pauseGame = () => {
-    gameEngineRef.current?.pauseGame();
+    gameHandleRef.current?.pauseGame();
   };
 
   const resumeGame = () => {
-    gameEngineRef.current?.resumeGame();
+    gameHandleRef.current?.resumeGame();
   };
 
   const levelUp = () => {
-    gameEngineRef.current?.levelUp();
+    gameHandleRef.current?.levelUp();
   };
 
   const [showPlayerSettings, setShowPlayerSettings] = useState(false);
@@ -240,7 +238,7 @@ const Game = () => {
                   <span className="text-white/80">Time:</span>
                   <span className="text-white font-bold">{formatTime(gameStats.time)}</span>
                 </div>
-                {gameEngineRef.current?.isTestMode && (
+                {gameHandleRef.current?.isTestMode && (
                   <div className="text-yellow-400 text-xs mt-2">TEST MODE</div>
                 )}
               </div>
@@ -264,7 +262,7 @@ const Game = () => {
                 <div>Kills: {gameStats.kills}</div>
                 <div>Level: {gameStats.level}</div>
                 <div>{formatTime(gameStats.time)}</div>
-                {gameEngineRef.current?.isTestMode && (
+                {gameHandleRef.current?.isTestMode && (
                   <div className="text-yellow-400">TEST</div>
                 )}
               </div>
@@ -344,7 +342,7 @@ const Game = () => {
               {gameState === 'paused' && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-black/90 p-6 md:p-10 rounded-2xl pointer-events-auto">
                   <h2 className="text-3xl md:text-4xl mb-4 md:mb-6 text-yellow-400 font-bold">Paused</h2>
-                  {gameEngineRef.current?.isTestMode && (
+                  {gameHandleRef.current?.isTestMode && (
                     <p className="text-xs md:text-sm text-yellow-300 mb-4">TEST MODE</p>
                   )}
                   <button
@@ -363,7 +361,7 @@ const Game = () => {
                     Level Up!
                   </h2>
                   <p className="text-lg md:text-xl mb-6 text-gray-300">10% of lost health is restored.</p>
-                  {gameEngineRef.current?.isTestMode && (
+                  {gameHandleRef.current?.isTestMode && (
                     <p className="text-xs md:text-sm text-yellow-300 mb-4">TEST MODE</p>
                   )}
                   <div className="flex flex-col gap-4">
@@ -382,7 +380,7 @@ const Game = () => {
                 <div className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-black/90 p-6 md:p-10 rounded-2xl pointer-events-auto max-w-[90%]">
                   <h2 className="text-3xl md:text-4xl mb-4 md:mb-6 text-red-500 font-bold">Game Over</h2>
                   {(() => {
-                    const finalStats = gameEngineRef.current?.getFinalStats();
+                    const finalStats = gameHandleRef.current?.getFinalStats();
                     return (
                       <>
                         <p className="text-base md:text-lg mb-2 text-white">Kills: {finalStats?.kills || 0}</p>
@@ -391,19 +389,19 @@ const Game = () => {
                     );
                   })()}
 
-                  {gameEngineRef.current?.isTestMode && (
+                  {gameHandleRef.current?.isTestMode && (
                     <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-200 text-sm">
                       TEST MODE - No score saved
                     </div>
                   )}
 
-                  {!gameEngineRef.current?.isTestMode && scoreLoading && (
+                  {!gameHandleRef.current?.isTestMode && scoreLoading && (
                     <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500 rounded-lg text-blue-200 text-sm">
                       Saving score...
                     </div>
                   )}
 
-                  {!gameEngineRef.current?.isTestMode && scoreError && (
+                  {!gameHandleRef.current?.isTestMode && scoreError && (
                     <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
                       Failed to save score: {scoreError}
                     </div>
@@ -519,7 +517,7 @@ const Game = () => {
       {PlayerSetting.controlScheme === 'joystick' && (
         <Joystick
           onMove={(vec) => {
-            if (gameEngineRef.current) gameEngineRef.current.inputVector = vec;
+            if (gameHandleRef.current) gameHandleRef.current.setInputVector(vec.x, vec.y);
           }}
           position={PlayerSetting.joystickPosition}
           offset={{
@@ -532,7 +530,7 @@ const Game = () => {
       {PlayerSetting.controlScheme === 'arrows' && (
         <ArrowPad
           onMove={(vec) => {
-            if (gameEngineRef.current) gameEngineRef.current.inputVector = vec;
+            if (gameHandleRef.current) gameHandleRef.current.setInputVector(vec.x, vec.y);
           }}
           position={PlayerSetting.arrowPadPosition}
           offset={{
@@ -544,101 +542,10 @@ const Game = () => {
 
       {/* Settings Modal */}
       {showPlayerSettings && (
-        <PlayerSettingsModal
+        <SettingModal
           onClose={() => setShowPlayerSettings(false)}
         />
       )}
-    </div>
-  );
-};
-
-const PlayerSettingsModal = ({ onClose }) => {
-  const [controlScheme, setControlScheme] = useState(PlayerSetting.controlScheme);
-  const [joystickSide, setJoystickSide] = useState(PlayerSetting.joystickPosition);
-  const [offsetX, setOffsetX] = useState(PlayerSetting.joystickOffset.x);
-  const [offsetY, setOffsetY] = useState(PlayerSetting.joystickOffset.y);
-  const [arrowSide, setArrowSide] = useState(PlayerSetting.arrowPadPosition);
-  const [arrowX, setArrowX] = useState(PlayerSetting.arrowPadOffset.x);
-  const [arrowY, setArrowY] = useState(PlayerSetting.arrowPadOffset.y);
-
-  const apply = () => {
-    PlayerSetting.controlScheme = controlScheme;
-    PlayerSetting.joystickPosition = joystickSide;
-    PlayerSetting.joystickOffset = { x: Number(offsetX) || 0, y: Number(offsetY) || 0 };
-    PlayerSetting.arrowPadPosition = arrowSide;
-    PlayerSetting.arrowPadOffset = { x: Number(arrowX) || 0, y: Number(arrowY) || 0 };
-    onClose?.();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-md bg-gray-800 p-4 md:p-6 rounded-lg text-white max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg md:text-xl font-bold mb-4">Player Settings</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block mb-2 text-sm font-medium">Control Scheme</label>
-            <select
-              value={controlScheme}
-              onChange={(e) => setControlScheme(e.target.value)}
-              className="w-full p-3 bg-gray-700 rounded border border-gray-600 text-white text-base"
-            >
-              <option value="joystick">Joystick</option>
-              <option value="arrows">Arrow Pad</option>
-            </select>
-          </div>
-
-          {controlScheme === 'joystick' && (
-            <>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Joystick Position</label>
-                <select
-                  value={joystickSide}
-                  onChange={(e) => setJoystickSide(e.target.value)}
-                  className="w-full p-3 bg-gray-700 rounded border border-gray-600 text-white text-base"
-                >
-                  <option value="left">Left</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-2 text-sm font-medium">Offset X</label>
-                  <input
-                    type="number"
-                    value={arrowX}
-                    onChange={(e) => setArrowX(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded border border-gray-600 text-white text-base"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium">Offset Y</label>
-                  <input
-                    type="number"
-                    value={arrowY}
-                    onChange={(e) => setArrowY(e.target.value)}
-                    className="w-full p-3 bg-gray-700 rounded border border-gray-600 text-white text-base"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="flex flex-col md:flex-row justify-end gap-4 mt-6">
-          <button
-            onClick={onClose}
-            className="w-full md:w-auto px-4 py-3 bg-gray-600 rounded hover:bg-gray-500 transition-colors text-base"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={apply}
-            className="w-full md:w-auto px-4 py-3 bg-blue-600 rounded hover:bg-blue-500 transition-colors text-base"
-          >
-            Apply
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
