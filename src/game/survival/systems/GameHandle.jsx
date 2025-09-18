@@ -104,6 +104,21 @@ export default class GameHandle {
     this.callbacks.onStateChange('playing');
   }
 
+  // 레벨업 시 호출
+  onLevelUp() {
+    this.gameState = 'levelup';
+    this.callbacks.onStateChange('levelup');
+  }
+
+  // 스탯 업그레이드 선택
+  selectStatUpgrade(cardType) {
+    // 게임 엔진에 스탯 업그레이드 적용
+    this.gameEngine.applyStatUpgrade(cardType);
+    
+    // 게임 재개
+    this.levelUp();
+  }
+
   levelUp() {
     this.gameState = 'playing';
     this.callbacks.onStateChange('playing');
@@ -122,11 +137,6 @@ export default class GameHandle {
   onStatsChange(newStats) {
     Object.assign(this.stats, newStats);
     this.callbacks.onStatsUpdate({ ...this.stats });
-  }
-
-  onLevelUp() {
-    this.gameState = 'levelup';
-    this.callbacks.onStateChange('levelup');
   }
 
   getFinalStats() {

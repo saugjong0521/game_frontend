@@ -3,7 +3,8 @@ const GameSetting = {
   player: {
     maxHp: 100,
     invulnSeconds: 0.5,
-    speed: 200
+    speed: 200,
+    autoAttackSeconds: 1.0
   },
   enemies: {
     bat: { contactDamage: 10, hp: 20, speed: 70, exp: 10 },
@@ -23,11 +24,10 @@ const GameSetting = {
   // 레벨업시 몬스터 및 게임 밸런스 스케일링
   levelScaling: {
     enemySpeedPerLevel: 10,     // 레벨당 몬스터 속도 증가량
-    enemyHpPerLevel: 0,        // 나중에 필요하면 체력도 증가 가능
-    enemyDamagePerLevel: 0,    // 나중에 필요하면 데미지도 증가 가능
-    levelUpHealPercent: 0.1    // 레벨업시 체력 회복 비율 (10%)
+    enemyHpPerLevel: 3,         // 레벨당 몬스터 체력 증가량
+    enemyDamagePerLevel: 5,     // 레벨당 몬스터 데미지 증가량
+    levelUpHealPercent: 0.1     // 레벨업시 체력 회복 비율 (10%)
   },
-  // 적 스폰 확률 설정
   enemySpawn: {
     baseSeconds: 1.0,  // 기본 스폰 간격
     probabilities: {
@@ -36,7 +36,42 @@ const GameSetting = {
       dog: 0.2       // dog 확률 (나머지)
     }
   },
-  autoAttackSeconds: 1.0
+  
+  // 레벨업 카드 시스템 - 4개 스탯
+  levelUpCards: {
+    health: {
+      name: "체력 증가",
+      description: "최대 체력이 10 증가합니다",
+      icon: "❤️",
+      statIncrease: 10
+    },
+    speed: {
+      name: "이동속도 증가", 
+      description: "이동속도가 15 증가합니다",
+      icon: "💨",
+      statIncrease: 15
+    },
+    attackSpeed: {
+      name: "공격속도 증가",
+      description: "공격 간격이 0.05초 감소합니다",
+      icon: "⚡",
+      statIncrease: 0.05
+    },
+    damage: {
+      name: "공격력 증가",
+      description: "공격력이 5 증가합니다", 
+      icon: "⚔️",
+      statIncrease: 5
+    }
+  },
+  
+  // 레벨업 카드 출현 확률 (100분위)
+  cardAppearanceRates: {
+    health: 30,      // 30%
+    speed: 25,       // 25%
+    attackSpeed: 25, // 25%
+    damage: 20       // 20%
+  }
 };
 
 export default GameSetting;

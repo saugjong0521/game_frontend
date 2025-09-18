@@ -7,7 +7,7 @@ export class Player {
     this.x = x;
     this.y = y;
     this.radius = UI.player.radius;
-    this.speed = GameSetting.player.speed;
+    this.speed = GameSetting.player.speed; // 동적으로 변경 가능
     this.hp = GameSetting.player.maxHp;
     this.maxHp = GameSetting.player.maxHp;
     this.invulnTimer = 0;
@@ -24,7 +24,7 @@ export class Player {
     // 움직임 상태 확인
     this.isMoving = Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1;
     
-    // 실제 이동
+    // 실제 이동 - 현재 speed 값 사용 (GameEngine에서 업그레이드 시 동적으로 변경됨)
     this.x += dx * this.speed * deltaTime;
     this.y += dy * this.speed * deltaTime;
 

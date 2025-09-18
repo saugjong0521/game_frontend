@@ -6,6 +6,7 @@ import { ArrowPad, Joystick } from './systems/GameControl.jsx';
 import { useGameStart } from '../../hooks/useGameStart.jsx';
 import { useGameScorePost } from '../../hooks/useGameScorePost.jsx';
 import SettingModal from './SettingModal.jsx';
+import GameModal from './GameModal.jsx';
 
 const Game = () => {
   const canvasRef = useRef(null);
@@ -198,10 +199,6 @@ const Game = () => {
     gameHandleRef.current?.resumeGame();
   };
 
-  const levelUp = () => {
-    gameHandleRef.current?.levelUp();
-  };
-
   const [showPlayerSettings, setShowPlayerSettings] = useState(false);
 
   const formatTime = (seconds) => {
@@ -303,119 +300,6 @@ const Game = () => {
               className="w-full h-full rounded-lg"
               style={{ imageRendering: 'pixelated' }}
             />
-
-            {/* 모달 오버레이 */}
-            <div className="absolute inset-0 pointer-events-none z-10">
-              {/* Menu Screen */}
-              {gameState === 'menu' && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-black/80 p-4 md:p-8 rounded-2xl pointer-events-auto max-w-[85%] w-full">
-                  <h1 className="text-xl md:text-4xl mb-4 md:mb-6 font-black bg-gradient-to-r from-red-400 to-cyan-400 bg-clip-text text-transparent">
-                    K STADIUM Survival
-                  </h1>
-
-                  {startError && (
-                    <div className="mb-3 p-2 md:p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-xs md:text-sm">
-                      {startError}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-3 justify-center items-center">
-                    <button
-                      onClick={startGame}
-                      disabled={startLoading}
-                      className={`w-full max-w-xs text-sm md:text-lg px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-purple-800 text-white border-none rounded-full cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/40 uppercase font-bold tracking-wider ${startLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {startLoading ? 'Starting...' : 'Start Game'}
-                    </button>
-
-                    <button
-                      onClick={startTestGame}
-                      className="w-full max-w-xs text-xs md:text-base px-3 md:px-5 py-2 md:py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white border-none rounded-full cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/40 uppercase font-bold tracking-wider"
-                    >
-                      Test Play
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Pause Screen */}
-              {gameState === 'paused' && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-black/90 p-6 md:p-10 rounded-2xl pointer-events-auto">
-                  <h2 className="text-3xl md:text-4xl mb-4 md:mb-6 text-yellow-400 font-bold">Paused</h2>
-                  {gameHandleRef.current?.isTestMode && (
-                    <p className="text-xs md:text-sm text-yellow-300 mb-4">TEST MODE</p>
-                  )}
-                  <button
-                    onClick={resumeGame}
-                    className="text-lg md:text-xl px-6 py-3 bg-green-500 text-white border-none rounded-3xl cursor-pointer transition-colors hover:bg-green-600"
-                  >
-                    Resume
-                  </button>
-                </div>
-              )}
-
-              {/* Level Up Screen */}
-              {gameState === 'levelup' && (
-                <div className="absolute w-4/5 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-black/90 p-6 md:p-10 rounded-2xl pointer-events-auto animate-pulse">
-                  <h2 className="text-4xl md:text-5xl mb-4 bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent font-bold">
-                    Level Up!
-                  </h2>
-                  <p className="text-lg md:text-xl mb-6 text-gray-300">10% of lost health is restored.</p>
-                  {gameHandleRef.current?.isTestMode && (
-                    <p className="text-xs md:text-sm text-yellow-300 mb-4">TEST MODE</p>
-                  )}
-                  <div className="flex flex-col gap-4">
-                    <button
-                      onClick={levelUp}
-                      className="text-lg md:text-xl px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-red-400 to-red-600 text-white border-none rounded-full cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-500/40 uppercase font-bold tracking-wider"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Game Over Screen */}
-              {gameState === 'gameover' && (
-                <div className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-black/90 p-6 md:p-10 rounded-2xl pointer-events-auto max-w-[90%]">
-                  <h2 className="text-3xl md:text-4xl mb-4 md:mb-6 text-red-500 font-bold">Game Over</h2>
-                  {(() => {
-                    const finalStats = gameHandleRef.current?.getFinalStats();
-                    return (
-                      <>
-                        <p className="text-base md:text-lg mb-2 text-white">Kills: {finalStats?.kills || 0}</p>
-                        <p className="text-base md:text-lg mb-4 md:mb-6 text-white">Level: {finalStats?.level || 1}</p>
-                      </>
-                    );
-                  })()}
-
-                  {gameHandleRef.current?.isTestMode && (
-                    <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-200 text-sm">
-                      TEST MODE - No score saved
-                    </div>
-                  )}
-
-                  {!gameHandleRef.current?.isTestMode && scoreLoading && (
-                    <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500 rounded-lg text-blue-200 text-sm">
-                      Saving score...
-                    </div>
-                  )}
-
-                  {!gameHandleRef.current?.isTestMode && scoreError && (
-                    <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
-                      Failed to save score: {scoreError}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={restartGame}
-                    className="text-base md:text-lg px-6 py-3 bg-blue-500 text-white border-none rounded-3xl cursor-pointer transition-colors hover:bg-blue-600"
-                  >
-                    Restart
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -539,6 +423,20 @@ const Game = () => {
           }}
         />
       )}
+
+      {/* Game Modal - 분리된 컴포넌트 */}
+      <GameModal
+        gameState={gameState}
+        gameHandleRef={gameHandleRef}
+        startGame={startGame}
+        startTestGame={startTestGame}
+        resumeGame={resumeGame}
+        restartGame={restartGame}
+        startLoading={startLoading}
+        startError={startError}
+        scoreLoading={scoreLoading}
+        scoreError={scoreError}
+      />
 
       {/* Settings Modal */}
       {showPlayerSettings && (

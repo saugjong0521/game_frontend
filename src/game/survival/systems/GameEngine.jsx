@@ -25,13 +25,33 @@ export default class GameEngine {
 
     // 키보드 입력
     this.keys = {};
+
+    // 플레이어 스탯 (레벨업으로 증가)
+    this.playerStats = {
+      maxHp: GameSetting.player.maxHp,
+      speed: GameSetting.player.speed,
+      attackSpeed: GameSetting.player.autoAttackSeconds,
+      damage: 25 // 기본 공격력
+    };
   }
 
   init() {
     try {
       this.player = new Player(400, 300);
+      // 플레이어 초기 스탯 적용
+      this.applyStatsToPlayer();
     } catch (error) {
       console.error('Error in GameEngine init:', error);
+    }
+  }
+
+  // 플레이어에게 현재 스탯 적용
+  applyStatsToPlayer() {
+    if (this.player) {
+      this.player.maxHp = this.playerStats.maxHp;
+      this.player.speed = this.playerStats.speed;
+      // HP는 현재 값 유지하되 최대치를 넘지 않도록
+      this.player.hp = Math.min(this.player.hp, this.playerStats.maxHp);
     }
   }
 
@@ -113,9 +133,13 @@ export default class GameEngine {
     // 확률에 따른 적 타입 결정
     const type = this.getEnemyType();
 
-    // 레벨에 따른 속도로 적 생성
+    // 레벨에 따른 속도, 체력, 데미지로 적 생성
     const enemy = new Enemy(x, y, type);
     enemy.speed = this.getEnemySpeed(type);
+    enemy.hp = this.getEnemyHp(type);
+    enemy.maxHp = enemy.hp;
+    enemy.contactDamage = this.getEnemyDamage(type);
+    
     this.enemies.push(enemy);
   }
 
@@ -137,16 +161,32 @@ export default class GameEngine {
     return baseSpeed + speedIncrease;
   }
 
+  // 레벨별 몬스터 체력 계산 함수
+  getEnemyHp(enemyType) {
+    const stats = this.gameHandle.getStats();
+    const baseHp = GameSetting.enemies[enemyType].hp;
+    const hpIncrease = GameSetting.levelScaling.enemyHpPerLevel * (stats.level - 1);
+    return baseHp + hpIncrease;
+  }
+
+  // 레벨별 몬스터 데미지 계산 함수
+  getEnemyDamage(enemyType) {
+    const stats = this.gameHandle.getStats();
+    const baseDamage = GameSetting.enemies[enemyType].contactDamage;
+    const damageIncrease = GameSetting.levelScaling.enemyDamagePerLevel * (stats.level - 1);
+    return baseDamage + damageIncrease;
+  }
+
   // 레벨업시 체력 회복량 계산 함수
   getLevelUpHealAmount() {
-    const stats = this.gameHandle.getStats();
-    return Math.floor(stats.maxHp * GameSetting.levelScaling.levelUpHealPercent);
+    return Math.floor(this.playerStats.maxHp * GameSetting.levelScaling.levelUpHealPercent);
   }
 
   updateAutoAttack(deltaTime) {
     this.attackTimer += deltaTime;
 
-    if (this.attackTimer >= GameSetting.autoAttackSeconds) {
+    // 플레이어의 현재 공격속도 사용
+    if (this.attackTimer >= this.playerStats.attackSpeed) {
       this.autoAttack();
       this.attackTimer = 0;
     }
@@ -174,6 +214,8 @@ export default class GameEngine {
         closestEnemy.x,
         closestEnemy.y
       );
+      // 플레이어의 현재 공격력 적용
+      attackObj.damage = this.playerStats.damage;
       this.attackObjs.push(attackObj);
     }
   }
@@ -227,18 +269,92 @@ export default class GameEngine {
 
           // 레벨업 시 체력 회복
           const healAmount = this.getLevelUpHealAmount();
-          this.player.hp = Math.min(this.player.hp + healAmount, stats.maxHp);
+          this.player.hp = Math.min(this.player.hp + healAmount, this.playerStats.maxHp);
 
           this.gameHandle.onStatsChange({
             level: newLevel,
             exp: 0,
             maxExp: newMaxExp,
-            hp: this.player.hp
+            hp: this.player.hp,
+            maxHp: this.playerStats.maxHp // 현재 최대 체력도 업데이트
           });
 
           this.gameHandle.onLevelUp();
         }
       }
+    });
+  }
+
+  // 레벨업 카드 3개 랜덤 선택 (확률 기반)
+  generateLevelUpCards() {
+    const cardTypes = ['health', 'speed', 'attackSpeed', 'damage'];
+    const appearanceRates = GameSetting.cardAppearanceRates;
+    
+    // 확률에 따른 가중치 배열 생성
+    const weightedCards = [];
+    cardTypes.forEach(cardType => {
+      const weight = appearanceRates[cardType];
+      for (let i = 0; i < weight; i++) {
+        weightedCards.push(cardType);
+      }
+    });
+    
+    // 중복 없이 3개 선택
+    const selectedCards = [];
+    const availableCards = [...cardTypes]; // 모든 카드 타입 복사
+    
+    for (let i = 0; i < 3 && availableCards.length > 0; i++) {
+      // 현재 사용 가능한 카드들에 대해서만 가중치 계산
+      const currentWeightedCards = [];
+      availableCards.forEach(cardType => {
+        const weight = appearanceRates[cardType];
+        for (let j = 0; j < weight; j++) {
+          currentWeightedCards.push(cardType);
+        }
+      });
+      
+      // 랜덤 선택
+      const randomIndex = Math.floor(Math.random() * currentWeightedCards.length);
+      const selectedCard = currentWeightedCards[randomIndex];
+      
+      selectedCards.push(selectedCard);
+      
+      // 선택된 카드는 사용 가능한 목록에서 제거
+      const cardIndex = availableCards.indexOf(selectedCard);
+      availableCards.splice(cardIndex, 1);
+    }
+    
+    return selectedCards;
+  }
+  applyStatUpgrade(cardType) {
+    const cards = GameSetting.levelUpCards;
+    
+    switch(cardType) {
+      case 'health':
+        this.playerStats.maxHp += cards.health.statIncrease;
+        // 체력 증가시 현재 체력도 같이 증가
+        this.player.maxHp = this.playerStats.maxHp;
+        this.player.hp += cards.health.statIncrease;
+        break;
+        
+      case 'speed':
+        this.playerStats.speed += cards.speed.statIncrease;
+        this.player.speed = this.playerStats.speed;
+        break;
+        
+      case 'attackSpeed':
+        this.playerStats.attackSpeed = Math.max(0.1, this.playerStats.attackSpeed - cards.attackSpeed.statIncrease);
+        break;
+
+      case 'damage':
+        this.playerStats.damage += cards.damage.statIncrease;
+        break;
+    }
+
+    // 스탯 변경을 게임 핸들에 알림
+    this.gameHandle.onStatsChange({ 
+      hp: this.player.hp,
+      maxHp: this.playerStats.maxHp 
     });
   }
 
@@ -356,8 +472,18 @@ export default class GameEngine {
 
   // 게임 시작 시 호출
   startGame() {
+    // 스탯 초기화
+    this.playerStats = {
+      maxHp: GameSetting.player.maxHp,
+      speed: GameSetting.player.speed,
+      attackSpeed: GameSetting.player.autoAttackSeconds,
+      damage: 25
+    };
+
     // 게임 오브젝트들 초기화
     this.player = new Player(400, 300);
+    this.applyStatsToPlayer();
+    
     this.enemies = [];
     this.attackObjs = [];
     this.expOrbs = [];
