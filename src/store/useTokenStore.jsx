@@ -47,6 +47,36 @@ const useTokenStore = create(
           return false;
         }
       },
+
+      // 토큰이 만료되었는지 확인
+      isTokenExpired: () => {
+        const { token } = get();
+        if (!token) return true;
+        
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          return payload.exp <= currentTime;
+        } catch (error) {
+          console.error('토큰 만료 확인 오류:', error);
+          return true;
+        }
+      },
+
+      // 토큰 만료까지 남은 시간 (초)
+      getTokenExpirationTime: () => {
+        const { token } = get();
+        if (!token) return 0;
+        
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          return Math.max(0, payload.exp - currentTime);
+        } catch (error) {
+          console.error('토큰 만료 시간 확인 오류:', error);
+          return 0;
+        }
+      },
     }),
     {
       name: 'token-storage', // localStorage 키 이름

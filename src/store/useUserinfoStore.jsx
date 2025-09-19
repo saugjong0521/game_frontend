@@ -56,6 +56,22 @@ const useUserInfoStore = create(
         const { userInfo } = get();
         return userInfo?.ticket_info || null;
       },
+
+      // 사용자 정보가 로드되었는지 확인
+      isUserInfoLoaded: () => {
+        const { userInfo } = get();
+        return userInfo !== null;
+      },
+
+      // 특정 필드 존재 여부 확인
+      hasField: (fieldPath) => {
+        const { userInfo } = get();
+        if (!userInfo) return false;
+        
+        return fieldPath.split('.').reduce((obj, key) => {
+          return obj && obj[key] !== undefined ? obj[key] : undefined;
+        }, userInfo) !== undefined;
+      },
     }),
     {
       name: 'userinfo-storage', // localStorage 키 이름

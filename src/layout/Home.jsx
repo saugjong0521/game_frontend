@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSignIn } from '../hooks/useSingIn';
 import { useGetUserInfo } from '../hooks/useGetUserInfo';
 
 const Home = () => {
-    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [formData, setFormData] = useState({
+        username: '',
+        password: ''
+    });
+    const [isInitializing, setIsInitializing] = useState(true);
     
     const {
-        formData,
-        handleChange,
+        formData: signInFormData,
+        handleChange: signInHandleChange,
         handleSignIn,
         handleSignOut,
         loading: signInLoading,
         error: signInError,
-        success
+        success: signInSuccess
     } = useSignIn();
 
     const {
@@ -23,44 +27,70 @@ const Home = () => {
         isAuthenticated
     } = useGetUserInfo();
 
+    // 폼 데이터 변경 핸들러
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // 컴포넌트 마운트 시 항상 사용자 정보 가져오기
+    useEffect(() => {
+        const initializeSession = async () => {
+            console.log('Home component mounted - fetching user info...');
+            setIsInitializing(true);
+            
+            try {
+                // 인증된 상태라면 사용자 정보 가져오기
+                if (isAuthenticated) {
+                    await getUserInfo();
+                    console.log('✅ User info loaded');
+                } else {
+                    console.log('ℹ️ Not authenticated - skipping user info fetch');
+                }
+            } catch (error) {
+                console.error('Failed to load user info:', error);
+            } finally {
+                setIsInitializing(false);
+            }
+        };
+
+        initializeSession();
+    }, []); // 빈 의존성 배열로 마운트 시에만 실행
+
     const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !signInLoading && !isLoggingIn) {
+        if (e.key === 'Enter' && !signInLoading && !userInfoLoading) {
             handleLogin();
         }
     };
 
     const handleLogin = async () => {
-        setIsLoggingIn(true);
-        
+        if (!formData.username.trim() || !formData.password.trim()) {
+            console.error('아이디와 비밀번호를 모두 입력해주세요.');
+            return;
+        }
+
         try {
-            // 1. 로그인 실행
             console.log('Starting sign in...');
-            const signInResult = await handleSignIn();
-            console.log('Sign in result:', signInResult);
+            await handleSignIn();
             
-            if (signInResult !== false) {
-                // 2. 로그인 성공 시 사용자 정보 조회
-                console.log('Getting user info...');
-                console.log('Is authenticated:', isAuthenticated);
-                console.log('Making API call to getUserInfo()...');
-                
-                const userInfoResult = await getUserInfo();
-                
-                console.log('User info API response:', userInfoResult);
-                console.log('User info from store:', userInfo);
-                
-                if (userInfoResult) {
-                    console.log('✅ Successfully retrieved user info');
-                } else {
-                    console.log('❌ Failed to retrieve user info');
-                }
-            } else {
-                console.log('❌ Sign in failed or returned false');
+            // 로그인 성공 시 사용자 정보 가져오기
+            if (signInSuccess) {
+                await getUserInfo();
             }
+            
+            // 폼 데이터 초기화
+            setFormData({ username: '', password: '' });
         } catch (error) {
             console.error('Login process failed:', error);
-        } finally {
-            setIsLoggingIn(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            handleSignOut();
+            console.log('✅ Successfully logged out');
+        } catch (error) {
+            console.error('Logout failed:', error);
         }
     };
 
@@ -81,47 +111,35 @@ const Home = () => {
         }
     };
 
-    // 티켓 정보 렌더링 함수
-    const renderTicketInfo = (ticketType, bgColor, borderColor, dotColor) => {
-        // 새로운 API 구조에 맞춤: ticket_info는 직접 ONE 값과 expires_at을 포함
-        const ticketInfo = userInfo?.ticket_info;
-        
-        if (!ticketInfo || typeof ticketInfo[ticketType] === 'undefined') {
-            return (
-                <div className={`flex items-center justify-between p-3 bg-gradient-to-r ${bgColor} rounded-lg border ${borderColor}`}>
-                    <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 ${dotColor} rounded-full`}></div>
-                        <span className="text-white font-medium">{ticketType}</span>
-                    </div>
-                    <span className="text-gray-300 text-sm">없음</span>
-                </div>
-            );
-        }
+    const isCurrentlyLoading = signInLoading || userInfoLoading;
 
-        const count = ticketInfo[ticketType] || 0;
-        const expiresAt = ticketInfo.expires_at;
-
+    // 초기화 중일 때 로딩 화면
+    if (isInitializing) {
         return (
-            <div className={`flex flex-col p-3 bg-gradient-to-r ${bgColor} rounded-lg border ${borderColor}`}>
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 ${dotColor} rounded-full`}></div>
-                        <span className="text-white font-medium">{ticketType}</span>
+            <div className="w-screen h-screen relative bg-gradient-to-br from-purple-900 via-purple-700 to-amber-500 flex items-center justify-center overflow-hidden">
+                {/* Background overlay effects */}
+                <div 
+                    className="absolute inset-0"
+                    style={{
+                        background: `
+                            radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 80% 20%, rgba(249, 115, 22, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.2) 0%, transparent 50%)
+                        `
+                    }}
+                ></div>
+                
+                {/* Loading content */}
+                <div className="relative z-10 bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20">
+                    <div className="text-center">
+                        <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+                        <h2 className="text-xl font-bold text-white mb-2">세션 확인 중...</h2>
+                        <p className="text-white/80">잠시만 기다려주세요</p>
                     </div>
-                    <span className="text-white text-lg font-bold">
-                        {count}
-                    </span>
                 </div>
-                {expiresAt && expiresAt !== null && (
-                    <div className="text-xs text-white/70">
-                        만료: {formatExpiresAt(expiresAt)}
-                    </div>
-                )}
             </div>
         );
-    };
-
-    const isLoading = signInLoading || userInfoLoading || isLoggingIn;
+    }
 
     // 로그인 성공 후 사용자 정보가 있으면 대시보드 표시
     if (userInfo && isAuthenticated) {
@@ -205,7 +223,7 @@ const Home = () => {
 
                         {/* 로그아웃 버튼 */}
                         <button
-                            onClick={handleSignOut}
+                            onClick={handleLogout}
                             className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-all duration-200 border border-white/20"
                         >
                             로그아웃
@@ -297,7 +315,7 @@ const Home = () => {
                     )}
 
                     {/* 성공 메시지 표시 */}
-                    {success && !userInfoError && !userInfo && (
+                    {signInSuccess && !userInfoError && !userInfo && (
                         <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 text-sm">
                             로그인 성공! 사용자 정보를 불러오는 중...
                         </div>
@@ -305,10 +323,10 @@ const Home = () => {
 
                     <button
                         onClick={handleLogin}
-                        disabled={isLoading}
+                        disabled={isCurrentlyLoading}
                         className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
                     >
-                        {isLoading ? (
+                        {isCurrentlyLoading ? (
                             <div className="flex items-center justify-center space-x-2">
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                 <span>
