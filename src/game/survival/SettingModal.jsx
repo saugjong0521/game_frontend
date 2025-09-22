@@ -70,7 +70,6 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
             case 'sfx':
                 setSfxVolume(numValue);
                 gameSounds.setSFXVolume(volume);
-
                 break;
         }
     };

@@ -106,21 +106,21 @@ const GameModal = ({
           </div>
         )}
 
-        {/* Level Up Screen */}
+        {/* Level Up Screen - 더 컴팩트 */}
         {gameState === 'levelup' && (
-          <div className="bg-gradient-to-br from-gray-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/50 shadow-2xl max-w-6xl w-full">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl md:text-6xl mb-4 bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent font-bold animate-pulse">
+          <div className="bg-gradient-to-br from-gray-900 to-black p-3 md:p-6 rounded-2xl md:rounded-3xl border border-yellow-500/50 shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="text-center mb-3 md:mb-6">
+              <h2 className="text-2xl md:text-6xl mb-1 md:mb-4 bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent font-bold animate-pulse">
                 LEVEL UP!
               </h2>
-              <p className="text-xl md:text-2xl text-gray-300 font-semibold">Choose your upgrade</p>
+              <p className="text-base md:text-2xl text-gray-300 font-semibold">Choose your upgrade</p>
               {gameHandleRef.current?.isTestMode && (
-                <p className="text-sm text-yellow-300 mt-2">TEST MODE</p>
+                <p className="text-xs md:text-sm text-yellow-300 mt-1">TEST MODE</p>
               )}
             </div>
             
-            {/* Stat Cards - 3개만 랜덤 선택 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Stat Cards - 더 컴팩트한 레이아웃 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6">
               {(() => {
                 // GameEngine에서 랜덤 카드 3개 생성
                 const selectedCardTypes = gameHandleRef.current?.gameEngine?.generateLevelUpCards() || ['health', 'speed', 'damage'];
@@ -135,18 +135,20 @@ const GameModal = ({
                           gameHandleRef.current.selectStatUpgrade(cardType);
                         }
                       }}
-                      className={`bg-gradient-to-br ${card.color} p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-2xl border-2 border-white/20 hover:border-white/40 group`}
+                      className={`bg-gradient-to-br ${card.color} p-3 md:p-6 rounded-xl md:rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-2xl border-2 border-white/20 hover:border-white/40 group`}
                     >
-                      <div className="text-center">
-                        <div className="text-5xl mb-4 group-hover:scale-125 transition-transform duration-300">
+                      <div className="flex md:flex-col items-center md:text-center gap-3 md:gap-0">
+                        <div className="text-3xl md:text-5xl md:mb-4 group-hover:scale-110 md:group-hover:scale-125 transition-transform duration-300 flex-shrink-0">
                           {card.icon}
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-3 group-hover:text-yellow-200 transition-colors">
-                          {card.name}
-                        </h3>
-                        <p className="text-sm text-white/80 group-hover:text-white transition-colors">
-                          {card.description}
-                        </p>
+                        <div className="flex-1 md:flex-none">
+                          <h3 className="text-base md:text-xl font-bold text-white mb-1 md:mb-3 group-hover:text-yellow-200 transition-colors">
+                            {card.name}
+                          </h3>
+                          <p className="text-sm text-white/80 group-hover:text-white transition-colors">
+                            {card.description}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );

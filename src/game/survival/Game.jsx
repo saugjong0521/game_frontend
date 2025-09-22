@@ -7,6 +7,8 @@ import { useGameStart } from '../../hooks/useGameStart.jsx';
 import { useGameScorePost } from '../../hooks/useGameScorePost.jsx';
 import SettingModal from './SettingModal.jsx';
 import GameModal from './GameModal.jsx';
+import { CiSettings } from "react-icons/ci";
+import { CiPause1 } from "react-icons/ci";
 
 const Game = () => {
   const canvasRef = useRef(null);
@@ -28,6 +30,35 @@ const Game = () => {
 
   const { startGame: apiStartGame, loading: startLoading, error: startError } = useGameStart();
   const { postGameScore, loading: scoreLoading, error: scoreError } = useGameScorePost();
+
+  // 설정 모달 상태 및 게임 일시정지 처리
+  const [showPlayerSettings, setShowPlayerSettings] = useState(false);
+  const [previousGameState, setPreviousGameState] = useState(null);
+
+  // 설정 모달 열기
+  const openSettings = () => {
+    if (gameState === 'playing') {
+      setPreviousGameState('playing');
+      setGameState('paused');
+    }
+    setShowPlayerSettings(true);
+  };
+
+  // 설정 모달 닫기
+  const closeSettings = () => {
+    setShowPlayerSettings(false);
+    if (previousGameState === 'playing') {
+      setGameState('playing');
+      setPreviousGameState(null);
+    }
+  };
+
+  // 게임 일시정지
+  const pauseGame = () => {
+    if (gameState === 'playing') {
+      setGameState('paused');
+    }
+  };
 
   // 화면 회전 감지 (모바일 최적화)
   useEffect(() => {
@@ -191,15 +222,9 @@ const Game = () => {
     }
   };
 
-  const pauseGame = () => {
-    gameHandleRef.current?.pauseGame();
-  };
-
   const resumeGame = () => {
     gameHandleRef.current?.resumeGame();
   };
-
-  const [showPlayerSettings, setShowPlayerSettings] = useState(false);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -240,14 +265,28 @@ const Game = () => {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setShowPlayerSettings(true)}
-              className="p-3 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors"
-              aria-label="settings"
-              title="Settings"
-            >
-              ⚙️
-            </button>
+            
+            {/* 가로 모드 버튼들 */}
+            <div className="flex flex-col gap-2">
+              {gameState === 'playing' && (
+                <button
+                  onClick={pauseGame}
+                  className="p-3 bg-black/80 text-white border border-white rounded-lg hover:bg-black transition-colors"
+                  aria-label="pause"
+                  title="Pause Game"
+                >
+                  <CiPause1 size={18} />
+                </button>
+              )}
+              <button
+                onClick={openSettings}
+                className="p-3 bg-black/80 text-white border border-white rounded-lg hover:bg-black transition-colors"
+                aria-label="settings"
+                title="Settings"
+              >
+                <CiSettings size={18} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -271,14 +310,27 @@ const Game = () => {
               </div>
             )}
 
-            <button
-              onClick={() => setShowPlayerSettings(true)}
-              className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors text-base"
-              aria-label="settings"
-              title="Settings"
-            >
-              ⚙️
-            </button>
+            {/* 세로 모드 버튼들 */}
+            <div className="flex gap-2">
+              {gameState === 'playing' && (
+                <button
+                  onClick={pauseGame}
+                  className="p-2 bg-black/80 text-white border border-white rounded-lg hover:bg-black transition-colors"
+                  aria-label="pause"
+                  title="Pause Game"
+                >
+                  <CiPause1 size={20} />
+                </button>
+              )}
+              <button
+                onClick={openSettings}
+                className="p-2 bg-black/80 text-white border border-white rounded-lg hover:bg-black transition-colors"
+                aria-label="settings"
+                title="Settings"
+              >
+                <CiSettings size={20} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -441,7 +493,7 @@ const Game = () => {
       {/* Settings Modal */}
       {showPlayerSettings && (
         <SettingModal
-          onClose={() => setShowPlayerSettings(false)}
+          onClose={closeSettings}
         />
       )}
     </div>

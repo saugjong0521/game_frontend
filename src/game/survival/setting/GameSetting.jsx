@@ -1,3 +1,9 @@
+import { GiWalkingBoot } from "react-icons/gi";
+import { GiHeartPlus } from "react-icons/gi";
+import { GiBladeDrag } from "react-icons/gi";
+import { GiBladeFall } from "react-icons/gi";
+
+
 // Game balance settings
 const GameSetting = {
   player: {
@@ -15,7 +21,7 @@ const GameSetting = {
     wolf: { contactDamage: 30, hp: 30, speed: 130, exp: 18, unlockTime: 120 }
   },
   exp: {
-    baseToLevel: 60,
+    baseToLevel: 50,
     perLevelIncrement: 12
   },
   
@@ -44,28 +50,28 @@ const GameSetting = {
     health: {
       name: "Health Up",
       description: "Max health increases by 10",
-      icon: "❤️",
+      icon: <GiHeartPlus />,
       color: "from-red-500 to-red-700",
       statIncrease: 10
     },
     speed: {
       name: "Movement Speed Up",
       description: "Movement speed increases by 15",
-      icon: "💨",
+      icon: <GiWalkingBoot />,
       color: "from-blue-500 to-blue-700",
       statIncrease: 15
     },
     attackSpeed: {
       name: "Attack Speed Up",
       description: "Attack speed increases by 5%",
-      icon: "⚡",
+      icon: <GiBladeFall />,
       color: "from-yellow-500 to-yellow-700",
       statIncrease: 0.05
     },
     damage: {
       name: "Damage Up",
       description: "Damage increases by 5",
-      icon: "⚔️",
+      icon: <GiBladeDrag />,
       color: "from-orange-500 to-orange-700",
       statIncrease: 5
     }
@@ -73,10 +79,10 @@ const GameSetting = {
 
   // 레벨업 카드 출현 확률 (100분위)
   cardAppearanceRates: {
-    health: 30,      // 30%
+    health: 20,      // 30%
     speed: 25,       // 25%
     attackSpeed: 25, // 25%
-    damage: 20       // 20%
+    damage: 30       // 20%
   }
 };
 
