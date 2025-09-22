@@ -39,7 +39,7 @@ const Game = () => {
   const openSettings = () => {
     if (gameState === 'playing') {
       setPreviousGameState('playing');
-      setGameState('paused');
+      gameHandleRef.current?.pauseGame(); // GameHandle의 pauseGame() 호출
     }
     setShowPlayerSettings(true);
   };
@@ -48,7 +48,8 @@ const Game = () => {
   const closeSettings = () => {
     setShowPlayerSettings(false);
     if (previousGameState === 'playing') {
-      setGameState('playing');
+      setGameState('playing');  // 👈 이것만으로는 부족
+      gameHandleRef.current?.resumeGame();  // 👈 이것도 호출해야 함
       setPreviousGameState(null);
     }
   };
@@ -56,7 +57,7 @@ const Game = () => {
   // 게임 일시정지
   const pauseGame = () => {
     if (gameState === 'playing') {
-      setGameState('paused');
+      gameHandleRef.current?.pauseGame(); // 이렇게 GameHandle의 pauseGame() 호출
     }
   };
 
@@ -116,17 +117,17 @@ const Game = () => {
   // React state 완전히 무시하고 게임 핸들 플래그만 사용하여 클로저 문제 완전 해결
   const handleStateChange = useCallback(async (newState) => {
     const isTestMode = gameHandleRef.current?.isTestMode === true;
-    
+
     setGameState(newState);
 
     if (newState === 'gameover') {
       console.log('Game over detected - handle test mode:', isTestMode);
-      
+
       if (isTestMode) {
         console.log('🚫 TEST MODE - No score saved');
         return;
       }
-      
+
       // 테스트 모드가 아닐 때만 점수 저장
       console.log('Normal mode - attempting to save score');
       const finalStats = gameHandleRef.current?.getFinalStats();
@@ -164,7 +165,7 @@ const Game = () => {
   const startGame = async () => {
     try {
       console.log('Starting normal game...');
-      
+
       // 게임 핸들에 명시적으로 normal 모드 설정
       if (gameHandleRef.current) {
         gameHandleRef.current.isTestMode = false;
@@ -184,7 +185,7 @@ const Game = () => {
 
   const startTestGame = () => {
     console.log('Starting test game...');
-    
+
     // 게임 핸들에 명시적으로 test 모드 설정
     if (gameHandleRef.current) {
       gameHandleRef.current.isTestMode = true;
@@ -265,7 +266,7 @@ const Game = () => {
                 )}
               </div>
             </div>
-            
+
             {/* 가로 모드 버튼들 */}
             <div className="flex flex-col gap-2">
               {gameState === 'playing' && (

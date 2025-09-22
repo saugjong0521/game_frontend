@@ -18,6 +18,7 @@ const GameModal = ({
   useEffect(() => {
     if (gameHandleRef.current?.gameEngine) {
       const gameEngine = gameHandleRef.current.gameEngine;
+      const gameHandle = gameHandleRef.current;
       
       // 모달이 표시되는 상태에서는 게임 일시정지
       if (gameState === 'levelup' || gameState === 'paused' || gameState === 'gameover') {
