@@ -11,7 +11,8 @@ const useGameStart = () => {
   const [gameSession, setGameSession] = useState(null);
   
   // useUserinfoStore에서 account (address) 가져오기
-  const account = useUserInfoStore((state) => state.userInfo.account);
+  const userInfo = useUserInfoStore((state) => state.userInfo);
+  const account = userInfo?.account;
   
   // useTokenStore에서 토큰 관련 함수들 가져오기
   const { getAuthHeader, isAuthenticated } = useTokenStore();

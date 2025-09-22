@@ -3,15 +3,12 @@ import { useSignIn } from '../hooks/useSingIn';
 import { useGetUserInfo } from '../hooks/useGetUserInfo';
 
 const Home = () => {
-    const [formData, setFormData] = useState({
-        username: '',
-        password: ''
-    });
+
     const [isInitializing, setIsInitializing] = useState(true);
     
     const {
-        formData: signInFormData,
-        handleChange: signInHandleChange,
+        formData,
+        handleChange,
         handleSignIn,
         handleSignOut,
         loading: signInLoading,
@@ -27,11 +24,7 @@ const Home = () => {
         isAuthenticated
     } = useGetUserInfo();
 
-    // 폼 데이터 변경 핸들러
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
+
 
     // 컴포넌트 마운트 시 항상 사용자 정보 가져오기
     useEffect(() => {

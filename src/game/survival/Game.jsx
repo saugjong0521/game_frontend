@@ -28,7 +28,9 @@ const Game = () => {
     maxExp: 50
   });
 
-  const { startGame: apiStartGame, loading: startLoading, error: startError } = useGameStart();
+  const gameStartHook = useGameStart();
+  const { startGame: apiStartGame, loading: startLoading, error: startError } =
+    gameStartHook || { startGame: null, loading: false, error: null };
   const { postGameScore, loading: scoreLoading, error: scoreError } = useGameScorePost();
 
   // 설정 모달 상태 및 게임 일시정지 처리
