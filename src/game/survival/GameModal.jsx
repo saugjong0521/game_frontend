@@ -24,6 +24,11 @@ const GameModal = ({
         if (typeof gameEngine.pause === 'function') {
           gameEngine.pause();
         }
+        
+        // 게임오버 시 게임오버 사운드 처리
+        if (gameState === 'gameover') {
+          gameEngine.onGameOver();
+        }
       } 
       // playing 상태로 돌아갈 때는 게임 재개
       else if (gameState === 'playing') {

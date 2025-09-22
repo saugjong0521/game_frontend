@@ -308,7 +308,7 @@ const Game = () => {
           <div className="flex flex-col gap-2 w-32 p-2 justify-center bg-black/30 rounded-lg">
             <div className="bg-black/70 rounded-lg p-3">
               <div className="text-white font-bold text-sm mb-3">Status</div>
-              {gameState === 'playing' ? (
+              {(gameState === 'playing' || gameState === 'levelup') ? (
                 <div className="space-y-3">
                   {/* HP Bar */}
                   <div>
@@ -362,7 +362,7 @@ const Game = () => {
         {/* 하단 상태바 (세로 모드만) */}
         {!isLandscape && (
           <div className="flex flex-col gap-1 w-full px-4 max-w-4xl mx-auto">
-            {gameState === 'playing' ? (
+            {(gameState === 'playing' || gameState === 'levelup') ? (
               <>
                 {/* HP Bar */}
                 <div className="w-full h-4 md:h-5 bg-black/50 border border-gray-600 rounded-xl overflow-hidden">
