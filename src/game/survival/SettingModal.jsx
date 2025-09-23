@@ -14,7 +14,7 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
     const [arrowSide, setArrowSide] = useState(() => PlayerSetting.arrowPadPosition);
     const [arrowX, setArrowX] = useState(() => PlayerSetting.arrowPadOffset?.x);
     const [arrowY, setArrowY] = useState(() => PlayerSetting.arrowPadOffset?.y);
-    
+
     // 사운드 볼륨 상태 - 실제 값 가져오기
     const [masterVolume, setMasterVolume] = useState(0);
     const [bgmVolume, setBgmVolume] = useState(0);
@@ -24,14 +24,22 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
     useEffect(() => {
         const loadCurrentVolumes = () => {
             // GameSounds 인스턴스에서 현재 볼륨 가져오기
-            const currentMaster = gameSounds.masterVolume * 100;
-            const currentBGM = gameSounds.bgmVolume * 100;
-            const currentSFX = gameSounds.sfxVolume * 100;
-            
-            setMasterVolume(currentMaster);
-            setBgmVolume(currentBGM);
-            setSfxVolume(currentSFX);
-            
+            const safeMaster = (typeof gameSounds.masterVolume === 'number' && !isNaN(gameSounds.masterVolume))
+                ? gameSounds.masterVolume * 100
+                : 0;  // NaN/undefined → 0
+
+            const safeBGM = (typeof gameSounds.bgmVolume === 'number' && !isNaN(gameSounds.bgmVolume))
+                ? gameSounds.bgmVolume * 100
+                : 0;  // NaN/undefined → 0
+
+            const safeSFX = (typeof gameSounds.sfxVolume === 'number' && !isNaN(gameSounds.sfxVolume))
+                ? gameSounds.sfxVolume * 100
+                : 0;  // NaN/undefined → 0
+
+            setMasterVolume(safeMaster);
+            setBgmVolume(safeBGM);
+            setSfxVolume(safeSFX);
+
             console.log('Loaded volumes:', {
                 master: currentMaster,
                 bgm: currentBGM,
@@ -49,20 +57,20 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
         PlayerSetting.joystickOffset = { x: Number(offsetX) || 0, y: Number(offsetY) || 0 };
         PlayerSetting.arrowPadPosition = arrowSide;
         PlayerSetting.arrowPadOffset = { x: Number(arrowX) || 0, y: Number(arrowY) || 0 };
-        
+
         // 사운드 설정 적용 (이미 handleVolumeChange에서 실시간으로 적용됨)
         console.log('Applied settings:', {
             master: masterVolume,
             bgm: bgmVolume,
             sfx: sfxVolume
         });
-        
+
         // GameEngine에도 볼륨 설정 전달 (있는 경우)
         if (gameEngineRef?.current) {
             const masterVol = masterVolume / 100;
             const bgmVol = bgmVolume / 100;
             const sfxVol = sfxVolume / 100;
-            
+
             if (typeof gameEngineRef.current.setMasterVolume === 'function') {
                 gameEngineRef.current.setMasterVolume(masterVol);
             }
@@ -73,7 +81,7 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                 gameEngineRef.current.setSFXVolume(sfxVol);
             }
         }
-        
+
         onClose?.();
     };
 
@@ -81,8 +89,8 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
     const handleVolumeChange = (type, value) => {
         const numValue = Math.max(0, Math.min(100, Number(value) || 0));
         const volume = numValue / 100;
-        
-        switch(type) {
+
+        switch (type) {
             case 'master':
                 setMasterVolume(numValue);
                 gameSounds.setMasterVolume(volume);
@@ -111,7 +119,7 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                         {/* Control Settings */}
                         <div className="border-b border-gray-600 pb-4">
                             <h4 className="text-md font-semibold mb-3 text-gray-300">Controls</h4>
-                            
+
                             {/* Control Scheme Selection */}
                             <div className="mb-4">
                                 <label className="block mb-2 text-sm font-medium">Control Scheme</label>
@@ -209,7 +217,7 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                         {/* Sound Settings */}
                         <div>
                             <h4 className="text-md font-semibold mb-3 text-gray-300">Audio</h4>
-                            
+
                             {/* Master Volume */}
                             <div className="mb-4">
                                 <label className="block mb-2 text-sm font-medium">
