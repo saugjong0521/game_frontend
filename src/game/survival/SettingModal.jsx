@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PlayerSetting from './setting/PlayerSetting.jsx';
 import getGameSoundsInstance from './systems/GameSounds.jsx';
 
@@ -6,7 +6,7 @@ import getGameSoundsInstance from './systems/GameSounds.jsx';
 const gameSounds = getGameSoundsInstance();
 
 const SettingsModal = ({ onClose, gameEngineRef }) => {
-    // useState에 함수를 전달하여 컴포넌트가 마운트될 때마다 현재 값을 가져오도록 함
+    // 컨트롤 설정
     const [controlScheme, setControlScheme] = useState(() => PlayerSetting.controlScheme);
     const [joystickSide, setJoystickSide] = useState(() => PlayerSetting.joystickPosition);
     const [offsetX, setOffsetX] = useState(() => PlayerSetting.joystickOffset?.x);
@@ -15,10 +15,32 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
     const [arrowX, setArrowX] = useState(() => PlayerSetting.arrowPadOffset?.x);
     const [arrowY, setArrowY] = useState(() => PlayerSetting.arrowPadOffset?.y);
     
-    // 사운드 볼륨 상태 - 컴포넌트 마운트 시 현재 값 가져오기
-    const [masterVolume, setMasterVolume] = useState(() => (gameSounds.masterVolume || 0.5) * 100);
-    const [bgmVolume, setBgmVolume] = useState(() => (gameSounds.bgmVolume || 0.5) * 100);
-    const [sfxVolume, setSfxVolume] = useState(() => (gameSounds.sfxVolume || 0.5) * 100);
+    // 사운드 볼륨 상태 - 실제 값 가져오기
+    const [masterVolume, setMasterVolume] = useState(0);
+    const [bgmVolume, setBgmVolume] = useState(0);
+    const [sfxVolume, setSfxVolume] = useState(0);
+
+    // 컴포넌트 마운트 시 실제 볼륨 값 로드
+    useEffect(() => {
+        const loadCurrentVolumes = () => {
+            // GameSounds 인스턴스에서 현재 볼륨 가져오기
+            const currentMaster = gameSounds.masterVolume * 100;
+            const currentBGM = gameSounds.bgmVolume * 100;
+            const currentSFX = gameSounds.sfxVolume * 100;
+            
+            setMasterVolume(currentMaster);
+            setBgmVolume(currentBGM);
+            setSfxVolume(currentSFX);
+            
+            console.log('Loaded volumes:', {
+                master: currentMaster,
+                bgm: currentBGM,
+                sfx: currentSFX
+            });
+        };
+
+        loadCurrentVolumes();
+    }, []);
 
     const apply = () => {
         // 컨트롤 설정 적용
@@ -28,17 +50,19 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
         PlayerSetting.arrowPadPosition = arrowSide;
         PlayerSetting.arrowPadOffset = { x: Number(arrowX) || 0, y: Number(arrowY) || 0 };
         
-        // 사운드 설정 적용
-        const masterVol = masterVolume / 100;
-        const bgmVol = bgmVolume / 100;
-        const sfxVol = sfxVolume / 100;
-        
-        gameSounds.setMasterVolume(masterVol);
-        gameSounds.setBGMVolume(bgmVol);
-        gameSounds.setSFXVolume(sfxVol);
+        // 사운드 설정 적용 (이미 handleVolumeChange에서 실시간으로 적용됨)
+        console.log('Applied settings:', {
+            master: masterVolume,
+            bgm: bgmVolume,
+            sfx: sfxVolume
+        });
         
         // GameEngine에도 볼륨 설정 전달 (있는 경우)
         if (gameEngineRef?.current) {
+            const masterVol = masterVolume / 100;
+            const bgmVol = bgmVolume / 100;
+            const sfxVol = sfxVolume / 100;
+            
             if (typeof gameEngineRef.current.setMasterVolume === 'function') {
                 gameEngineRef.current.setMasterVolume(masterVol);
             }
@@ -53,23 +77,26 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
         onClose?.();
     };
 
-    // 볼륨 변경 시 즉시 적용 (미리보기)
+    // 볼륨 변경 시 즉시 적용 (미리보기) + 로컬 상태 업데이트
     const handleVolumeChange = (type, value) => {
-        const numValue = Number(value) || 0;
+        const numValue = Math.max(0, Math.min(100, Number(value) || 0));
         const volume = numValue / 100;
         
         switch(type) {
             case 'master':
                 setMasterVolume(numValue);
                 gameSounds.setMasterVolume(volume);
+                console.log('Master volume set to:', numValue);
                 break;
             case 'bgm':
                 setBgmVolume(numValue);
                 gameSounds.setBGMVolume(volume);
+                console.log('BGM volume set to:', numValue);
                 break;
             case 'sfx':
                 setSfxVolume(numValue);
                 gameSounds.setSFXVolume(volume);
+                console.log('SFX volume set to:', numValue);
                 break;
         }
     };
@@ -192,10 +219,16 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                                     type="range"
                                     min="0"
                                     max="100"
+                                    step="1"
                                     value={masterVolume}
                                     onChange={(e) => handleVolumeChange('master', e.target.value)}
                                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                                 />
+                                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                    <span>0%</span>
+                                    <span>50%</span>
+                                    <span>100%</span>
+                                </div>
                             </div>
 
                             {/* BGM Volume */}
@@ -207,10 +240,16 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                                     type="range"
                                     min="0"
                                     max="100"
+                                    step="1"
                                     value={bgmVolume}
                                     onChange={(e) => handleVolumeChange('bgm', e.target.value)}
                                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                                 />
+                                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                    <span>0%</span>
+                                    <span>50%</span>
+                                    <span>100%</span>
+                                </div>
                             </div>
 
                             {/* SFX Volume */}
@@ -222,10 +261,21 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                                     type="range"
                                     min="0"
                                     max="100"
+                                    step="1"
                                     value={sfxVolume}
                                     onChange={(e) => handleVolumeChange('sfx', e.target.value)}
                                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                                 />
+                                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                    <span>0%</span>
+                                    <span>50%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+
+                            {/* 현재 볼륨 표시 (디버그용) */}
+                            <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-700 rounded">
+                                Current: M={Math.round(masterVolume)}% | BGM={Math.round(bgmVolume)}% | SFX={Math.round(sfxVolume)}%
                             </div>
                         </div>
                     </div>
@@ -266,6 +316,18 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
                     background: #3B82F6;
                     cursor: pointer;
                     border: 2px solid #1E40AF;
+                }
+
+                .slider::-webkit-slider-track {
+                    background: #374151;
+                    height: 8px;
+                    border-radius: 4px;
+                }
+
+                .slider::-moz-range-track {
+                    background: #374151;
+                    height: 8px;
+                    border-radius: 4px;
                 }
             `}</style>
         </>
