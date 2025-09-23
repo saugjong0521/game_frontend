@@ -40,11 +40,6 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
             setBgmVolume(safeBGM);
             setSfxVolume(safeSFX);
 
-            console.log('Loaded volumes:', {
-                master: currentMaster,
-                bgm: currentBGM,
-                sfx: currentSFX
-            });
         };
 
         loadCurrentVolumes();
