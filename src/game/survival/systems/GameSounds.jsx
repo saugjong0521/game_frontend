@@ -7,7 +7,7 @@ import {
   levelselect,
   levelup,
   walk
-} from '@/assets'; // 또는 정확한 경로에 맞게 조정
+} from '@/assets';
 import SoundSetting from '../setting/SoundSetting';
 
 class GameSounds {
@@ -27,7 +27,12 @@ class GameSounds {
     this.fallbackAudioElements = {};
     this.useFallback = false;
     
-    // 사운드 파일 경로 정의 (import된 모듈 사용)
+    // 무한루프 방지를 위한 더 강력한 제어
+    this.initPromise = null;
+    this.fallbackInitPromise = null;
+    this.soundsLoading = false;
+    
+    // 사운드 파일 경로 정의
     this.soundPaths = {
       attackSound,
       bgm,
@@ -37,12 +42,30 @@ class GameSounds {
       levelup,
       walk
     };
-    
   }
 
-  // 오디오 컨텍스트 초기화 (사용자 상호작용 후 호출)
+  // 오디오 컨텍스트 초기화 - Promise 기반으로 중복 방지
   async init() {
-    if (this.isInitialized) return;
+    if (this.initPromise) {
+      console.log('Init already in progress, waiting...');
+      return this.initPromise;
+    }
+    
+    if (this.isInitialized) {
+      return Promise.resolve();
+    }
+    
+    this.initPromise = this._performInit();
+    
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  async _performInit() {
+    console.log('Starting GameSounds initialization...');
     
     try {
       // AudioContext 생성 시도
@@ -54,87 +77,122 @@ class GameSounds {
         await this.audioContext.resume();
       }
       
-      // 마스터 볼륨 노드 생성
+      // 게인 노드들 생성
       this.masterGainNode = this.audioContext.createGain();
       this.masterGainNode.gain.value = this.masterVolume;
       this.masterGainNode.connect(this.audioContext.destination);
       
-      // BGM용 게인 노드
       this.bgmGainNode = this.audioContext.createGain();
       this.bgmGainNode.gain.value = this.bgmVolume;
       this.bgmGainNode.connect(this.masterGainNode);
       
-      // SFX용 게인 노드
       this.sfxGainNode = this.audioContext.createGain();
       this.sfxGainNode.gain.value = this.sfxVolume;
       this.sfxGainNode.connect(this.masterGainNode);
       
+      // 사운드 로딩 (중복 방지)
       await this.loadAllSounds();
+      
       this.isInitialized = true;
       this.isAudioContextBroken = false;
       this.retryCount = 0;
-      console.log('GameSounds initialized successfully');
+      console.log('GameSounds initialized successfully with AudioContext');
+      
     } catch (error) {
       console.error('Failed to initialize GameSounds with AudioContext:', error);
       this.isAudioContextBroken = true;
       
-      // 폴백 시스템으로 전환
+      // 폴백 시스템으로 전환 (한 번만)
       await this.initFallbackSystem();
     }
   }
 
-  // 모든 사운드 파일 로드
+  // 사운드 로딩 - 중복 방지 강화
   async loadAllSounds() {
-    console.log('Starting to load all sounds...');
-    const loadPromises = Object.entries(this.soundPaths).map(async ([name, path]) => {
-      try {
-        console.log(`Loading sound: ${name} from ${path}`);
-        const response = await fetch(path);
-        if (!response.ok) {
-          console.warn(`Failed to load sound: ${path}`);
-          return;
-        }
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-        this.sounds[name] = audioBuffer;
-        console.log(`Successfully loaded sound: ${name}`);
-      } catch (error) {
-        console.warn(`Error loading sound ${name}:`, error);
-        // AudioContext 에러가 발생하면 전체 시스템을 폴백으로 전환
-        if (error.name === 'NotSupportedError' || error.message.includes('AudioContext') || error.message.includes('audio device')) {
-          console.error('AudioContext error detected, switching to fallback system');
-          throw error; // 상위로 에러 전파하여 폴백 시스템 활성화
-        }
-      }
-    });
-
+    if (this.soundsLoading) {
+      console.log('Sounds already loading, skipping...');
+      return;
+    }
+    
+    this.soundsLoading = true;
+    
     try {
-      await Promise.all(loadPromises);
-      console.log('All sounds loaded successfully');
-    } catch (error) {
-      // AudioContext 관련 에러가 발생하면 폴백 시스템으로 전환
-      if (error.name === 'NotSupportedError' || error.message.includes('AudioContext') || error.message.includes('audio device')) {
-        throw error;
-      }
+      console.log('Starting to load all sounds...');
+      
+      const loadPromises = Object.entries(this.soundPaths).map(async ([name, path]) => {
+        try {
+          console.log(`Loading sound: ${name}`);
+          
+          const response = await fetch(path);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+          
+          this.sounds[name] = audioBuffer;
+          console.log(`Successfully loaded: ${name}`);
+          
+        } catch (error) {
+          console.warn(`Failed to load sound ${name}:`, error);
+          
+          // AudioContext 관련 에러인 경우 전체 로딩 실패로 처리
+          if (error.name === 'NotSupportedError' || 
+              error.message.includes('AudioContext') || 
+              error.message.includes('audio device')) {
+            throw error;
+          }
+        }
+      });
+
+      await Promise.allSettled(loadPromises);
+      console.log('Sound loading completed');
+      
+    } finally {
+      this.soundsLoading = false;
     }
   }
 
-  // 폴백 시스템 초기화 (HTML5 Audio 사용)
+  // 폴백 시스템 초기화 - Promise 기반으로 중복 방지
   async initFallbackSystem() {
+    if (this.fallbackInitPromise) {
+      console.log('Fallback init already in progress, waiting...');
+      return this.fallbackInitPromise;
+    }
+    
+    if (this.useFallback && this.isInitialized) {
+      return Promise.resolve();
+    }
+    
+    this.fallbackInitPromise = this._performFallbackInit();
+    
     try {
-      console.log('Initializing fallback audio system...');
-      
-      // HTML5 Audio 요소들 생성
-      for (const [name, path] of Object.entries(this.soundPaths)) {
-        const audio = new Audio(path);
-        audio.preload = 'auto';
-        audio.volume = 1.0; // 기본 볼륨
-        this.fallbackAudioElements[name] = audio;
+      await this.fallbackInitPromise;
+    } finally {
+      this.fallbackInitPromise = null;
+    }
+  }
+
+  async _performFallbackInit() {
+    console.log('Initializing fallback audio system...');
+    
+    try {
+      // 기존 폴백 요소들이 있다면 재사용
+      if (Object.keys(this.fallbackAudioElements).length === 0) {
+        for (const [name, path] of Object.entries(this.soundPaths)) {
+          const audio = new Audio();
+          audio.preload = 'auto';
+          audio.volume = 1.0;
+          audio.src = path;
+          this.fallbackAudioElements[name] = audio;
+        }
       }
       
       this.useFallback = true;
       this.isInitialized = true;
       console.log('Fallback audio system initialized successfully');
+      
     } catch (error) {
       console.error('Failed to initialize fallback audio system:', error);
       this.isInitialized = false;
@@ -152,42 +210,28 @@ class GameSounds {
     console.log(`Attempting to recover AudioContext (attempt ${this.retryCount}/${this.maxRetries})`);
     
     try {
-      // 기존 AudioContext 정리
-      if (this.audioContext) {
+      if (this.audioContext && this.audioContext.state !== 'closed') {
         await this.audioContext.close();
       }
       
-      // 새로운 AudioContext 생성
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
-      
-      // 게인 노드들 재생성
-      this.masterGainNode = this.audioContext.createGain();
-      this.masterGainNode.gain.value = this.masterVolume;
-      this.masterGainNode.connect(this.audioContext.destination);
-      
-      this.bgmGainNode = this.audioContext.createGain();
-      this.bgmGainNode.gain.value = this.bgmVolume;
-      this.bgmGainNode.connect(this.masterGainNode);
-      
-      this.sfxGainNode = this.audioContext.createGain();
-      this.sfxGainNode.gain.value = this.sfxVolume;
-      this.sfxGainNode.connect(this.masterGainNode);
-      
-      // 사운드 버퍼들 재로드
-      await this.loadAllSounds();
-      
+      // 새로운 초기화 시도
+      this.isInitialized = false;
       this.isAudioContextBroken = false;
       this.useFallback = false;
-      this.retryCount = 0;
+      
+      await this.init();
       
       console.log('AudioContext recovered successfully');
       return true;
+      
     } catch (error) {
       console.error(`AudioContext recovery failed (attempt ${this.retryCount}):`, error);
+      
+      // 복구 실패 시 폴백으로 되돌리기
+      this.isAudioContextBroken = true;
+      this.useFallback = true;
+      await this.initFallbackSystem();
+      
       return false;
     }
   }
@@ -195,7 +239,6 @@ class GameSounds {
   // 사용자 상호작용으로 오디오 컨텍스트 재개
   async resumeAudioContext() {
     if (this.useFallback) {
-      // 폴백 시스템에서는 복구 시도
       const recovered = await this.recoverAudioContext();
       if (!recovered) {
         console.log('Staying with fallback audio system');
@@ -216,10 +259,12 @@ class GameSounds {
 
   // AudioContext 상태 확인
   checkAudioContextHealth() {
-    if (!this.audioContext) return false;
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+      return false;
+    }
     
     try {
-      // 간단한 테스트로 AudioContext가 작동하는지 확인
+      // 간단한 연결 테스트
       const testSource = this.audioContext.createBufferSource();
       const testGain = this.audioContext.createGain();
       testSource.connect(testGain);
@@ -238,19 +283,8 @@ class GameSounds {
       return null;
     }
 
-    // 개별 사운드 볼륨 적용
-    const individualVolume = SoundSetting[soundName];
+    const individualVolume = SoundSetting[soundName] || 1.0;
     const finalVolume = volume * individualVolume;
-
-    // AudioContext 상태 확인
-    if (!this.useFallback && !this.checkAudioContextHealth()) {
-      console.log('AudioContext not healthy, switching to fallback system');
-      this.isAudioContextBroken = true;
-      this.useFallback = true;
-      this.initFallbackSystem().catch(err => {
-        console.error('Failed to initialize fallback system:', err);
-      });
-    }
 
     // 폴백 시스템 사용
     if (this.useFallback) {
@@ -274,20 +308,24 @@ class GameSounds {
       
       source.start();
       return source;
+      
     } catch (error) {
       console.error(`Error playing sound ${soundName}:`, error);
-      this.isAudioContextBroken = true;
       
-      // 폴백으로 전환 시도
-      this.useFallback = true;
-      this.initFallbackSystem().catch(err => {
-        console.error('Failed to initialize fallback system:', err);
-      });
-      return this.playSoundFallback(soundName, finalVolume);
+      // AudioContext가 깨진 경우 폴백으로 전환하되 재초기화하지 않음
+      if (!this.useFallback) {
+        this.isAudioContextBroken = true;
+        this.useFallback = true;
+        
+        // 비동기로 폴백 초기화 (결과 기다리지 않음)
+        this.initFallbackSystem();
+      }
+      
+      return null;
     }
   }
 
-  // 폴백 사운드 재생 (HTML5 Audio)
+  // 폴백 사운드 재생
   playSoundFallback(soundName, volume = 1.0) {
     if (!this.fallbackAudioElements[soundName]) {
       console.warn(`Fallback sound not available: ${soundName}`);
@@ -295,12 +333,22 @@ class GameSounds {
     }
 
     try {
-      const audio = this.fallbackAudioElements[soundName].cloneNode();
-      audio.volume = volume * this.masterVolume * this.sfxVolume;
-      audio.play().catch(error => {
-        console.warn(`Failed to play fallback sound ${soundName}:`, error);
-      });
+      const audio = this.fallbackAudioElements[soundName];
+      
+      // 기존 재생 정지 및 리셋
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = Math.min(1.0, volume * this.masterVolume * this.sfxVolume);
+      
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.catch(error => {
+          console.warn(`Failed to play fallback sound ${soundName}:`, error);
+        });
+      }
+      
       return audio;
+      
     } catch (error) {
       console.error(`Error playing fallback sound ${soundName}:`, error);
       return null;
@@ -314,20 +362,9 @@ class GameSounds {
       return;
     }
 
-    // 이미 재생 중이면 재시작하지 않음 (restart가 false인 경우)
     if (this.currentBGM && !restart) return;
 
     this.stopBGM();
-
-    // AudioContext 상태 확인
-    if (!this.useFallback && !this.checkAudioContextHealth()) {
-      console.log('AudioContext not healthy, switching to fallback system');
-      this.isAudioContextBroken = true;
-      this.useFallback = true;
-      this.initFallbackSystem().catch(err => {
-        console.error('Failed to initialize fallback system:', err);
-      });
-    }
 
     // 폴백 시스템 사용
     if (this.useFallback) {
@@ -335,7 +372,6 @@ class GameSounds {
       return;
     }
 
-    // AudioContext 사용
     if (!this.sounds.bgm) {
       console.warn('BGM not available');
       return;
@@ -350,14 +386,15 @@ class GameSounds {
       
       this.currentBGM = source;
       console.log('BGM started');
+      
     } catch (error) {
       console.error('Error playing BGM:', error);
-      this.isAudioContextBroken = true;
-      this.useFallback = true;
-      this.initFallbackSystem().catch(err => {
-        console.error('Failed to initialize fallback system:', err);
-      });
-      this.playBGMFallback();
+      
+      if (!this.useFallback) {
+        this.isAudioContextBroken = true;
+        this.useFallback = true;
+        this.initFallbackSystem();
+      }
     }
   }
 
@@ -369,15 +406,24 @@ class GameSounds {
     }
 
     try {
-      const audio = this.fallbackAudioElements.bgm.cloneNode();
+      const audio = this.fallbackAudioElements.bgm;
       audio.loop = true;
-      audio.volume = this.masterVolume * this.bgmVolume;
-      audio.play().catch(error => {
-        console.warn('Failed to play fallback BGM:', error);
-      });
+      audio.volume = Math.min(1.0, this.masterVolume * this.bgmVolume);
+      audio.currentTime = 0;
       
-      this.currentBGM = audio;
-      console.log('Fallback BGM started');
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.then(() => {
+          this.currentBGM = audio;
+          console.log('Fallback BGM started');
+        }).catch(error => {
+          console.warn('Failed to play fallback BGM:', error);
+        });
+      } else {
+        this.currentBGM = audio;
+        console.log('Fallback BGM started');
+      }
+      
     } catch (error) {
       console.error('Error playing fallback BGM:', error);
     }
@@ -388,15 +434,12 @@ class GameSounds {
     if (this.currentBGM) {
       try {
         if (this.useFallback) {
-          // HTML5 Audio 요소 정지
           this.currentBGM.pause();
           this.currentBGM.currentTime = 0;
         } else {
-          // AudioContext 소스 정지
           this.currentBGM.stop();
         }
       } catch (error) {
-        // 이미 정지된 경우 무시
         console.warn('Error stopping BGM:', error);
       }
       this.currentBGM = null;
@@ -409,23 +452,12 @@ class GameSounds {
       return;
     }
 
-    // AudioContext 상태 확인
-    if (!this.useFallback && !this.checkAudioContextHealth()) {
-      console.log('AudioContext not healthy, switching to fallback system');
-      this.isAudioContextBroken = true;
-      this.useFallback = true;
-      this.initFallbackSystem().catch(err => {
-        console.error('Failed to initialize fallback system:', err);
-      });
-    }
-
     // 폴백 시스템 사용
     if (this.useFallback) {
       this.startWalkSoundFallback();
       return;
     }
 
-    // AudioContext 사용
     if (!this.sounds.walk) {
       console.warn('Walk sound not available');
       return;
@@ -439,19 +471,20 @@ class GameSounds {
       source.loop = true;
       source.connect(gainNode);
       gainNode.connect(this.sfxGainNode);
-      gainNode.gain.value = SoundSetting.walk;
+      gainNode.gain.value = SoundSetting.walk || 1.0;
       
       source.start();
       this.walkLoopSource = source;
       this.isWalkPlaying = true;
+      
     } catch (error) {
       console.error('Error playing walk sound:', error);
-      this.isAudioContextBroken = true;
-      this.useFallback = true;
-      this.initFallbackSystem().catch(err => {
-        console.error('Failed to initialize fallback system:', err);
-      });
-      this.startWalkSoundFallback();
+      
+      if (!this.useFallback) {
+        this.isAudioContextBroken = true;
+        this.useFallback = true;
+        this.initFallbackSystem();
+      }
     }
   }
 
@@ -463,15 +496,24 @@ class GameSounds {
     }
 
     try {
-      const audio = this.fallbackAudioElements.walk.cloneNode();
+      const audio = this.fallbackAudioElements.walk;
       audio.loop = true;
-      audio.volume = SoundSetting.walk * this.masterVolume * this.sfxVolume;
-      audio.play().catch(error => {
-        console.warn('Failed to play fallback walk sound:', error);
-      });
+      audio.volume = Math.min(1.0, (SoundSetting.walk || 1.0) * this.masterVolume * this.sfxVolume);
+      audio.currentTime = 0;
       
-      this.walkLoopSource = audio;
-      this.isWalkPlaying = true;
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.then(() => {
+          this.walkLoopSource = audio;
+          this.isWalkPlaying = true;
+        }).catch(error => {
+          console.warn('Failed to play fallback walk sound:', error);
+        });
+      } else {
+        this.walkLoopSource = audio;
+        this.isWalkPlaying = true;
+      }
+      
     } catch (error) {
       console.error('Error playing fallback walk sound:', error);
     }
@@ -482,15 +524,12 @@ class GameSounds {
     if (this.walkLoopSource) {
       try {
         if (this.useFallback) {
-          // HTML5 Audio 요소 정지
           this.walkLoopSource.pause();
           this.walkLoopSource.currentTime = 0;
         } else {
-          // AudioContext 소스 정지
           this.walkLoopSource.stop();
         }
       } catch (error) {
-        // 이미 정지된 경우 무시
         console.warn('Error stopping walk sound:', error);
       }
       this.walkLoopSource = null;
@@ -516,8 +555,8 @@ class GameSounds {
   }
 
   playGameOverSound() {
-    this.stopBGM(); // BGM 정지
-    this.stopWalkSound(); // 걷기 소리 정지
+    this.stopBGM();
+    this.stopWalkSound();
     this.playSound('gameover', 1.0);
   }
 
@@ -528,12 +567,13 @@ class GameSounds {
       this.masterGainNode.gain.value = this.masterVolume;
     }
     
-    // 폴백 시스템에서 현재 재생 중인 사운드들의 볼륨 업데이트
-    if (this.useFallback && this.currentBGM) {
-      this.currentBGM.volume = this.masterVolume * this.bgmVolume;
-    }
-    if (this.useFallback && this.walkLoopSource) {
-      this.walkLoopSource.volume = SoundSetting.walk * this.masterVolume * this.sfxVolume;
+    if (this.useFallback) {
+      if (this.currentBGM) {
+        this.currentBGM.volume = Math.min(1.0, this.masterVolume * this.bgmVolume);
+      }
+      if (this.walkLoopSource) {
+        this.walkLoopSource.volume = Math.min(1.0, (SoundSetting.walk || 1.0) * this.masterVolume * this.sfxVolume);
+      }
     }
   }
 
@@ -543,9 +583,8 @@ class GameSounds {
       this.bgmGainNode.gain.value = this.bgmVolume;
     }
     
-    // 폴백 시스템에서 현재 재생 중인 BGM 볼륨 업데이트
     if (this.useFallback && this.currentBGM) {
-      this.currentBGM.volume = this.masterVolume * this.bgmVolume;
+      this.currentBGM.volume = Math.min(1.0, this.masterVolume * this.bgmVolume);
     }
   }
 
@@ -555,9 +594,8 @@ class GameSounds {
       this.sfxGainNode.gain.value = this.sfxVolume;
     }
     
-    // 폴백 시스템에서 현재 재생 중인 걷기 사운드 볼륨 업데이트
     if (this.useFallback && this.walkLoopSource) {
-      this.walkLoopSource.volume = 1.0 * this.masterVolume * this.sfxVolume;
+      this.walkLoopSource.volume = Math.min(1.0, this.masterVolume * this.sfxVolume);
     }
   }
 
@@ -571,38 +609,38 @@ class GameSounds {
   destroy() {
     this.stopAllSounds();
     
-    // AudioContext 정리
-    if (this.audioContext) {
-      try {
-        this.audioContext.close();
-      } catch (error) {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close().catch(error => {
         console.warn('Error closing AudioContext:', error);
-      }
+      });
     }
     
-    // 폴백 오디오 요소들 정리
     Object.values(this.fallbackAudioElements).forEach(audio => {
       try {
         audio.pause();
         audio.src = '';
+        audio.load();
       } catch (error) {
         console.warn('Error cleaning up fallback audio:', error);
       }
     });
     
+    // 모든 상태 리셋
     this.sounds = {};
     this.fallbackAudioElements = {};
     this.isInitialized = false;
     this.isAudioContextBroken = false;
     this.useFallback = false;
     this.retryCount = 0;
+    this.initPromise = null;
+    this.fallbackInitPromise = null;
+    this.soundsLoading = false;
   }
 }
 
 // 싱글톤 인스턴스 생성
 let gameSoundsInstance = null;
 
-// 싱글톤 패턴으로 인스턴스 생성
 function getGameSoundsInstance() {
   if (!gameSoundsInstance) {
     gameSoundsInstance = new GameSounds();
