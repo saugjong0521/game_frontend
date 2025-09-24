@@ -24,21 +24,13 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
     useEffect(() => {
         const loadCurrentVolumes = () => {
             // GameSounds 인스턴스에서 현재 볼륨 가져오기
-            const safeMaster = (typeof gameSounds.masterVolume === 'number' && !isNaN(gameSounds.masterVolume))
-                ? gameSounds.masterVolume * 100
-                : 0;  // NaN/undefined → 0
-
-            const safeBGM = (typeof gameSounds.bgmVolume === 'number' && !isNaN(gameSounds.bgmVolume))
-                ? gameSounds.bgmVolume * 100
-                : 0;  // NaN/undefined → 0
-
-            const safeSFX = (typeof gameSounds.sfxVolume === 'number' && !isNaN(gameSounds.sfxVolume))
-                ? gameSounds.sfxVolume * 100
-                : 0;  // NaN/undefined → 0
-
-            setMasterVolume(safeMaster);
-            setBgmVolume(safeBGM);
-            setSfxVolume(safeSFX);
+            const currentMaster = gameSounds.masterVolume * 100;
+            const currentBGM = gameSounds.bgmVolume * 100;
+            const currentSFX = gameSounds.sfxVolume * 100;
+            
+            setMasterVolume(currentMaster);
+            setBgmVolume(currentBGM);
+            setSfxVolume(currentSFX);
 
         };
 
