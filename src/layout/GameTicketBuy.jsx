@@ -315,7 +315,7 @@ const GameTicketBuy = () => {
       <div className="px-4 py-6 pb-20">
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
-            K STADIUM Survival Beta
+            Survival Game
           </h2>
           <p className="text-gray-400 text-sm">Ticket Buy</p>
         </div>

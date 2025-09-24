@@ -73,7 +73,7 @@ const LeaderBoardLayout = () => {
                         LEADERBOARD
                     </h1>
                     <p className="text-base md:text-lg text-white/70">
-                        Check out the top players in K STADIUM SURVIVAL
+                        Check out the top players in SURVIVAL Game
                     </p>
                 </div>
 

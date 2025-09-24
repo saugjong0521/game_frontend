@@ -57,7 +57,7 @@ const GameModal = ({
           <div className="bg-gradient-to-br from-gray-900 to-black p-8 md:p-12 rounded-3xl border border-gray-600 shadow-2xl max-w-md w-full">
             <div className="text-center">
               <h1 className="text-3xl md:text-5xl mb-8 font-black bg-gradient-to-r from-red-400 to-cyan-400 bg-clip-text text-transparent">
-                K STADIUM
+                OVER101
               </h1>
               <h2 className="text-xl md:text-2xl mb-8 text-gray-300 font-bold">
                 Survival

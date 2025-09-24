@@ -52,7 +52,7 @@ const Navigation = ({ isHidden = false }) => {
                         className="text-xl md:text-2xl font-black text-white no-underline bg-gradient-to-r from-blue-500 via-purple-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_200%] animate-pulse tracking-wide"
                         onClick={closeMobileMenu}
                     >
-                        K STADIUM
+                        OVER101
                     </Link>
 
                     {/* Desktop Menu */}
@@ -76,7 +76,7 @@ const Navigation = ({ isHidden = false }) => {
                                             className="block text-white no-underline px-4 py-3 font-medium transition-all duration-300 rounded-md m-1 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500 hover:translate-x-1"
                                             onClick={closeDropdown}
                                         >
-                                            K STADIUM SURVIVAL
+                                            SURVIVAL
                                         </Link>
                                     </div>
                                 )}
@@ -100,7 +100,7 @@ const Navigation = ({ isHidden = false }) => {
                                             className="block text-white no-underline px-4 py-3 font-medium transition-all duration-300 rounded-md m-1 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500 hover:translate-x-1"
                                             onClick={closeDropdown}
                                         >
-                                            K STADIUM SURVIVAL
+                                            SURVIVAL
                                         </Link>
                                     </div>
                                 )}
@@ -124,7 +124,7 @@ const Navigation = ({ isHidden = false }) => {
                                             className="block text-white no-underline px-4 py-3 font-medium transition-all duration-300 rounded-md m-1 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500 hover:translate-x-1"
                                             onClick={closeDropdown}
                                         >
-                                            K STADIUM SURVIVAL
+                                            SURVIVAL
                                         </Link>
                                     </div>
                                 )}
@@ -204,7 +204,7 @@ const Navigation = ({ isHidden = false }) => {
                                         className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500"
                                         onClick={closeMobileMenu}
                                     >
-                                        K STADIUM SURVIVAL
+                                        SURVIVAL
                                     </Link>
                                 </div>
 
@@ -215,7 +215,7 @@ const Navigation = ({ isHidden = false }) => {
                                         className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500"
                                         onClick={closeMobileMenu}
                                     >
-                                        K STADIUM SURVIVAL
+                                        SURVIVAL
                                     </Link>
                                 </div>
 
@@ -226,7 +226,7 @@ const Navigation = ({ isHidden = false }) => {
                                         className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500"
                                         onClick={closeMobileMenu}
                                     >
-                                        K STADIUM SURVIVAL
+                                        SURVIVAL
                                     </Link>
                                 </div>
                             </div>
