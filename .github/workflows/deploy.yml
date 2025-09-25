@@ -3,29 +3,12 @@ name: Deploy to Server
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js 22
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build project
-      run: npm run build
-
     - name: Deploy to server via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -36,22 +19,34 @@ jobs:
         timeout: 120s
         script: |
           cd /home/frontend/over101/game_frontend
-          git pull origin main
-          npm ci
-          npm run build
           
-          # 기존 game-frontend 프로세스가 있으면 삭제
-          pm2 delete game-frontend 2>/dev/null || echo "No existing game-frontend process found"
+          # Git pull 실패 시 배포 중단
+          if ! git pull origin main; then
+            echo "Git pull failed"
+            exit 1
+          fi
           
-          # 새로운 프로세스 시작
+          # 의존성 설치 실패 시 배포 중단
+          if ! npm ci; then
+            echo "npm ci failed"
+            exit 1
+          fi
+          
+          # 빌드 실패 시 배포 중단
+          if ! npm run build; then
+            echo "Build failed"
+            exit 1
+          fi
+          
+          # PM2 프로세스 관리
+          pm2 delete game-frontend 2>/dev/null || echo "No existing process"
+          
+          # serve가 설치되어 있는지 확인
+          if ! command -v serve &> /dev/null; then
+            npm install -g serve
+          fi
+          
           pm2 start serve --name "game-frontend" -- -s dist -l 5173
-          
-          # pm2 설정 저장 (재부팅 시 자동 시작을 위해)
           pm2 save
           
-          echo "Deployment completed at $(date)" >> /home/frontend/over101/game_frontend/deployment.log
-
-    - name: Notify deployment status
-      if: always()
-      run: |
-        echo "Deployment finished with status: ${{ job.status }}"
+          echo "Deployment completed successfully at $(date)" >> deployment.log
