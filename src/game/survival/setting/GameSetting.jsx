@@ -27,10 +27,10 @@ const GameSetting = {
   
   // 시간 기반 스케일링 시스템
   timeScaling: {
-    scalingInterval: 20,        // 30초마다 난이도 증가
+    scalingInterval: 20,        // 20초마다 난이도 증가
     enemySpeedPerInterval: 8,   // 주기당 몬스터 속도 증가량
     enemyHpPerInterval: 5,      // 주기당 몬스터 체력 증가량
-    enemyDamagePerInterval: 3,  // 주기당 몬스터 데미지 증가량
+    enemyDamagePerInterval: 2,  // 주기당 몬스터 데미지 증가량
     spawnRateIncrease: 0.05,    // 주기당 스폰 속도 증가 (5% 더 빨리)
     maxSpawnRate: 0.2,          // 최소 스폰 간격 (초)
   },

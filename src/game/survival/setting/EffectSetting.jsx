@@ -4,8 +4,8 @@ const EffectSetting = {
   screenShake: {
     // 피격 시 화면 흔들림
     hit: {
-      duration: 0.25,    // 흔들림 지속 시간 (초)
-      intensity: 6       // 흔들림 강도 (픽셀)
+      duration: 0.4,    // 흔들림 지속 시간 (초)
+      intensity: 8       // 흔들림 강도 (픽셀)
     },
     
   }
