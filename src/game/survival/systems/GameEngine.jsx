@@ -1,10 +1,11 @@
-// systems/GameEngine.js - 사운드 시스템 통합 버전
+// systems/GameEngine.js - 정리된 버전
 import GameSetting from '../setting/GameSetting.jsx';
 import UI from '../setting/UI.jsx';
 import { Player, Enemy } from './Character.jsx';
 import getGameSounds from './GameSounds.jsx';
-import { AttackObj, ExpOrb } from './Play.jsx';
+import { AttackObj } from './Play.jsx';
 import GameEffect from '../systems/GameEffect.jsx';
+import CollisionHandler from './CollisionHandler.jsx';
 
 export default class GameEngine {
   constructor(canvas, gameHandle) {
@@ -28,15 +29,16 @@ export default class GameEngine {
       console.log('GameEffect initialized successfully');
     } catch (error) {
       console.error('Failed to create GameEffect:', error);
-      // 기본 이펙트 객체로 폴백
       this.gameEffect = {
         startScreenShake: (effectType) => {
           console.log('Fallback startScreenShake called:', effectType);
         },
-        update: (deltaTime) => { },
+        startEnemyDeathEffect: () => {},
+        update: (deltaTime) => {},
         getScreenShakeOffset: () => ({ x: 0, y: 0 }),
         isScreenShakeActive: () => false,
-        reset: () => { }
+        reset: () => {},
+        renderEnemyDeathEffects: () => {}
       };
     }
 
@@ -64,6 +66,9 @@ export default class GameEngine {
     // 사운드 관련 상태
     this.wasPlayerMoving = false;
     this.soundInitialized = false;
+
+    // 충돌 핸들러 초기화
+    this.collisionHandler = new CollisionHandler(this);
   }
 
   async init() {
@@ -84,7 +89,6 @@ export default class GameEngine {
     }
   }
 
-  // 첫 사용자 상호작용 시 사운드 초기화
   async initSoundsOnFirstInteraction() {
     if (this.soundInitialized) return;
 
@@ -146,8 +150,8 @@ export default class GameEngine {
       orb.update(deltaTime, this.player);
     });
 
-    // 충돌 검사 (사운드 및 이펙트 포함)
-    this.handleCollisions();
+    // 충돌 검사 (CollisionHandler 사용)
+    this.collisionHandler.handleCollisions();
 
     // 카메라 업데이트
     this.updateCamera();
@@ -195,17 +199,14 @@ export default class GameEngine {
     this.handleWalkSound(dx, dy);
   }
 
-  // 걷기 사운드 처리
   handleWalkSound(dx, dy) {
     if (!this.soundInitialized) return;
 
     const isMoving = Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1;
 
     if (isMoving && !this.wasPlayerMoving) {
-      // 이동 시작 시 걷기 사운드 재생
       getGameSounds().startWalkSound();
     } else if (!isMoving && this.wasPlayerMoving) {
-      // 이동 중지 시 걷기 사운드 정지
       getGameSounds().stopWalkSound();
     }
 
@@ -295,10 +296,6 @@ export default class GameEngine {
     return baseDamage + damageIncrease;
   }
 
-  getLevelUpHealAmount() {
-    return Math.floor(this.playerStats.maxHp * GameSetting.player.levelUpHealPercent);
-  }
-
   updateAutoAttack(deltaTime) {
     this.attackTimer += deltaTime;
 
@@ -332,93 +329,10 @@ export default class GameEngine {
       attackObj.damage = this.playerStats.damage;
       this.attackObjs.push(attackObj);
 
-      // 공격 사운드 재생
       if (this.soundInitialized) {
         getGameSounds().playAttackSound();
       }
     }
-  }
-
-  handleCollisions() {
-    const stats = this.gameHandle.getStats();
-
-    // 플레이어와 적 충돌 (화면 흔들림 효과 추가)
-    this.enemies.forEach(enemy => {
-      if (this.checkCollision(this.player, enemy)) {
-        if (this.player.tryTakeHit(enemy.contactDamage)) {
-          // 피격 사운드 재생
-          if (this.soundInitialized) {
-            getGameSounds().playHitSound();
-          }
-
-          // 화면 흔들림 효과 시작 (hit 설정 사용)
-          this.gameEffect.startScreenShake('hit');
-
-          this.gameHandle.onStatsChange({ hp: this.player.hp });
-          
-          if (this.player.hp <= 0) {
-            this.gameHandle.onPlayerDeath();
-            return;
-          }
-        }
-      }
-    });
-
-    // 발사체와 적 충돌
-    this.attackObjs.forEach((attackObj, pIndex) => {
-      this.enemies.forEach((enemy, eIndex) => {
-        if (this.checkCollision(attackObj, enemy)) {
-          enemy.takeDamage(attackObj.damage);
-          attackObj.destroy();
-
-          if (enemy.hp <= 0) {
-            const dropExp = GameSetting.enemies[enemy.type]?.exp || enemy.expValue;
-            const orbSkin = UI.expOrbPerEnemy[enemy.type] ?? UI.expOrb;
-            this.expOrbs.push(new ExpOrb(enemy.x, enemy.y, dropExp, orbSkin));
-            this.enemies.splice(eIndex, 1);
-            this.gameHandle.onStatsChange({ kills: stats.kills + 1 });
-          }
-        }
-      });
-    });
-
-    // 플레이어와 경험치 오브 충돌
-    this.expOrbs.forEach((orb, index) => {
-      if (this.checkCollision(this.player, orb)) {
-        const newExp = stats.exp + orb.value;
-        this.expOrbs.splice(index, 1);
-        this.gameHandle.onStatsChange({ exp: newExp });
-
-        // 레벨업 체크
-        if (newExp >= stats.maxExp) {
-          const newLevel = stats.level + 1;
-          const newMaxExp = stats.maxExp + GameSetting.exp.perLevelIncrement;
-
-          let carriedExp = newExp - stats.maxExp;
-          if (carriedExp >= newMaxExp) {
-            carriedExp = newMaxExp - 1;
-          }
-
-          const healAmount = this.getLevelUpHealAmount();
-          this.player.hp = Math.min(this.player.hp + healAmount, this.playerStats.maxHp);
-
-          this.gameHandle.onStatsChange({
-            level: newLevel,
-            exp: carriedExp,
-            maxExp: newMaxExp,
-            hp: this.player.hp,
-            maxHp: this.playerStats.maxHp
-          });
-
-          // 레벨업 사운드 재생
-          if (this.soundInitialized) {
-            getGameSounds().playLevelUpSound();
-          }
-
-          this.gameHandle.onLevelUp();
-        }
-      }
-    });
   }
 
   generateLevelUpCards() {
@@ -460,7 +374,6 @@ export default class GameEngine {
   applyStatUpgrade(cardType) {
     const cards = GameSetting.levelUpCards;
 
-    // 레벨 선택 사운드 재생
     if (this.soundInitialized) {
       getGameSounds().playLevelSelectSound();
     }
@@ -492,13 +405,7 @@ export default class GameEngine {
     });
   }
 
-  checkCollision(obj1, obj2) {
-    const dx = obj1.x - obj2.x;
-    const dy = obj1.y - obj2.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < (obj1.radius + obj2.radius);
-  }
-
+  // 유틸리티 메서드 (autoAttack에서 사용)
   getDistance(obj1, obj2) {
     const dx = obj1.x - obj2.x;
     const dy = obj1.y - obj2.y;
@@ -506,11 +413,9 @@ export default class GameEngine {
   }
 
   updateCamera() {
-    // 기본 카메라 위치
     this.camera.x = this.player.x - this.canvas.width / 2;
     this.camera.y = this.player.y - this.canvas.height / 2;
 
-    // 화면 흔들림 효과 적용
     const shakeOffset = this.gameEffect.getScreenShakeOffset();
     this.camera.x += shakeOffset.x;
     this.camera.y += shakeOffset.y;
@@ -532,6 +437,14 @@ export default class GameEngine {
     this.drawBackground();
     this.drawGrid();
 
+    // 경험치 오브 렌더링 (가장 아래)
+    this.expOrbs.forEach(orb => {
+      orb.render(this.ctx);
+    });
+
+    // 몬스터 사망 효과 렌더링 (경험치 위에)
+    this.gameEffect.renderEnemyDeathEffects(this.ctx, UI);
+
     this.player.render(this.ctx);
 
     this.enemies.forEach(enemy => {
@@ -540,10 +453,6 @@ export default class GameEngine {
 
     this.attackObjs.forEach(attackObj => {
       attackObj.render(this.ctx);
-    });
-
-    this.expOrbs.forEach(orb => {
-      orb.render(this.ctx);
     });
 
     this.ctx.restore();
@@ -599,9 +508,7 @@ export default class GameEngine {
     this.ctx.globalAlpha = 1.0;
   }
 
-  // 게임 시작 시 호출
   async startGame() {
-    // 스탯 초기화
     this.playerStats = {
       maxHp: GameSetting.player.maxHp,
       speed: GameSetting.player.speed,
@@ -609,7 +516,6 @@ export default class GameEngine {
       damage: GameSetting.player.damage,
     };
 
-    // 게임 오브젝트들 초기화
     this.player = new Player(400, 300);
     this.applyStatsToPlayer();
 
@@ -619,54 +525,44 @@ export default class GameEngine {
     this.enemySpawnTimer = 0;
     this.attackTimer = 0;
 
-    // 게임 시간 초기화
     this.gameTime = 0;
     this.currentSpawnRate = GameSetting.enemySpawn.baseSeconds;
     this.isPaused = false;
     this.wasPlayerMoving = false;
 
-    // 게임 이펙트 초기화
     this.gameEffect.reset();
 
-    // 사운드 시스템 초기화 및 BGM 시작
     await this.initSoundsOnFirstInteraction();
     if (this.soundInitialized) {
       getGameSounds().playBGM();
     }
   }
 
-  // 게임오버 처리
   onGameOver() {
     if (this.soundInitialized) {
       getGameSounds().playGameOverSound();
     }
   }
 
-  // 키 입력 설정
   setKey(key, value) {
     this.keys[key] = value;
 
-    // 첫 키 입력 시 사운드 시스템 초기화
     if (!this.soundInitialized) {
       this.initSoundsOnFirstInteraction();
     }
   }
 
-  // 외부 입력 설정 (모바일 조이스틱 등)
   setInputVector(x, y) {
     this.inputVector.x = x;
     this.inputVector.y = y;
 
-    // 첫 입력 시 사운드 시스템 초기화
     if (!this.soundInitialized) {
       this.initSoundsOnFirstInteraction();
     }
   }
 
-  // 일시정지 제어 메서드들
   pause() {
     this.isPaused = true;
-    // 일시정지 시 걷기 사운드 정지
     if (this.soundInitialized) {
       getGameSounds().stopWalkSound();
       this.wasPlayerMoving = false;
@@ -675,7 +571,6 @@ export default class GameEngine {
 
   resume() {
     this.isPaused = false;
-    // 재개 시 사운드 컨텍스트 재개
     if (this.soundInitialized) {
       getGameSounds().resumeAudioContext();
     }
@@ -694,12 +589,10 @@ export default class GameEngine {
     return this.isPaused;
   }
 
-  // 현재 게임 시간 반환
   getGameTime() {
     return this.gameTime;
   }
 
-  // 사운드 볼륨 조절 메서드들
   setMasterVolume(volume) {
     if (this.soundInitialized) {
       getGameSounds().setMasterVolume(volume);
@@ -719,7 +612,6 @@ export default class GameEngine {
   }
 
   destroy() {
-    // 게임 오브젝트들 정리
     this.player = null;
     this.enemies = [];
     this.attackObjs = [];
@@ -730,7 +622,6 @@ export default class GameEngine {
     this.isPaused = false;
     this.wasPlayerMoving = false;
 
-    // 사운드 정리
     if (this.soundInitialized) {
       getGameSounds().stopAllSounds();
     }
