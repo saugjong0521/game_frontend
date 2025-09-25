@@ -6,6 +6,7 @@ import { greenslime } from './images'
 import { blueslime } from './images'
 import { attack } from './images'
 import { wolf } from './images'
+import { bat2 } from './images'
 
 
 import {
@@ -37,6 +38,7 @@ export {
     blueslime,
     attack,
     wolf,
+    bat2,
 
     dicoMove_1,
     dicoMove_2,

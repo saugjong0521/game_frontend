@@ -13,7 +13,7 @@ export class Player {
     this.invulnTimer = 0;
     this.invulnDuration = GameSetting.player.invulnSeconds;
     this.facingDirection = 1; // 1: 오른쪽, -1: 왼쪽
-    
+
     // 움직임 애니메이션 관련 속성 추가
     this.isMoving = false;
     this.animationTimer = 0;
@@ -23,7 +23,7 @@ export class Player {
   move(dx, dy, deltaTime) {
     // 움직임 상태 확인
     this.isMoving = Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1;
-    
+
     // 실제 이동 - 현재 speed 값 사용 (GameEngine에서 업그레이드 시 동적으로 변경됨)
     this.x += dx * this.speed * deltaTime;
     this.y += dy * this.speed * deltaTime;
@@ -34,12 +34,12 @@ export class Player {
     } else if (dx < -0.1) {
       this.facingDirection = 1; // 왼쪽으로 이동 시 기본 방향 (오른쪽 보기)
     }
-    
+
     // 움직임 애니메이션 업데이트
     if (this.isMoving) {
       this.animationTimer += deltaTime;
       const animConfig = UI.player.animation;
-      
+
       if (this.animationTimer >= animConfig.animationSpeed) {
         this.currentFrame = (this.currentFrame + 1) % animConfig.totalFrames;
         this.animationTimer = 0;
@@ -75,7 +75,7 @@ export class Player {
       // 정지 상태: 기본 이미지
       img = UI.player.imagePath;
     }
-    
+
     if (img && img.complete && img.naturalWidth > 0) {
       ctx.globalAlpha = flashing ? 0.5 : 1.0;
 
@@ -197,27 +197,18 @@ export class Enemy {
   }
 
   render(ctx) {
-    // 스프라이트 애니메이션이 있는 적들 처리
     const enemyConfig = UI.enemies[this.type];
     const img = enemyConfig?.imagePath;
 
     if (img && img.complete && img.naturalWidth > 0 && enemyConfig.spriteSheet) {
       const sprite = enemyConfig.spriteSheet;
 
-      // 현재 프레임의 소스 위치 계산
       const sourceX = this.currentFrame * sprite.frameWidth;
       const sourceY = 0;
 
-      // 렌더링 크기 (wolf는 원본 비율 유지, 다른 적들은 정사각형)
-      let renderWidth, renderHeight;
-      if (this.type === 'wolf') {
-        renderWidth = sprite.renderWidth;
-        renderHeight = sprite.renderHeight;
-      } else {
-        const renderSize = Math.max(sprite.renderWidth, sprite.renderHeight);
-        renderWidth = renderSize;
-        renderHeight = renderSize;
-      }
+      // 모든 적이 원본 비율 유지
+      const renderWidth = sprite.renderWidth;
+      const renderHeight = sprite.renderHeight;
 
       ctx.save();
       ctx.translate(this.x, this.y);
@@ -226,13 +217,12 @@ export class Enemy {
         ctx.scale(-1, 1);
       }
 
-      // 스프라이트 이미지 그리기
       ctx.drawImage(
         img,
-        sourceX, sourceY,                         // 소스 위치
-        sprite.renderWidth, sprite.renderHeight,  // 소스 크기
-        -renderWidth / 2, -renderHeight / 2,      // 대상 위치 (중앙 정렬)
-        renderWidth, renderHeight                 // 대상 크기 (wolf는 원본 비율 유지)
+        sourceX, sourceY,
+        sprite.renderWidth, sprite.renderHeight,
+        -renderWidth / 2, -renderHeight / 2,
+        renderWidth, renderHeight
       );
 
       ctx.restore();
@@ -244,7 +234,7 @@ export class Enemy {
       ctx.fill();
     }
 
-    // HP 바 (모든 적에게 공통)
+    // HP 바
     if (this.hp < this.maxHp) {
       const barWidth = 30;
       const barHeight = 4;

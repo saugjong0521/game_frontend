@@ -6,6 +6,8 @@ import blueslime from './blueslime.svg'
 import wolf from './wolf.svg'
 import map from './Map.svg'
 import attack from './attack.svg'
+import bat2 from './bat2.svg'
+
 
 import {
     dicoMove_1,
@@ -24,6 +26,7 @@ export {
     map,
     attack,
     wolf,
+    bat2,
     
     dicoMove_1,
     dicoMove_2,

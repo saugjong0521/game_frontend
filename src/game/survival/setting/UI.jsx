@@ -1,4 +1,4 @@
-import { dico, dicoMove_1, dicoMove_2, dicoMove_3, dicoMove_4, dicoMove_5, bat, wolf, blueslime, greenslime, map, attack } from "@/assets";
+import { dico, dicoMove_1, bat2, dicoMove_2, dicoMove_3, dicoMove_4, dicoMove_5, bat, wolf, blueslime, greenslime, map, attack } from "@/assets";
 
 const dicoImage = new Image();
 const dicoMoveImages = [];
@@ -23,7 +23,7 @@ dicoMoveImages[3].src = dicoMove_4;
 dicoMoveImages[4] = new Image();
 dicoMoveImages[4].src = dicoMove_5;
 
-batImage.src = bat;
+batImage.src = bat2;
 blueslimeImg.src = blueslime;
 greenslimeImg.src = greenslime;
 mapImage.src = map;
@@ -64,14 +64,13 @@ const UI = {
     bat: {
       color: '#F44336',
       imagePath: batImage,
-      // 스프라이트 애니메이션 설정 (41*36, 7px 간격)
       spriteSheet: {
-        frameWidth: 48,       // 41 + 7 = 48px (이미지 + 간격)
-        frameHeight: 36,      // 프레임 높이
+        frameWidth: 50,       // 67 + 1 = 68px (이미지 + 간격)
+        frameHeight: 30,      // 프레임 높이
         totalFrames: 4,       // 총 프레임 수
         animationSpeed: 0.2,  // 애니메이션 속도
-        renderWidth: 41,      // 실제 이미지 크기 (간격 제외)
-        renderHeight: 36
+        renderWidth: 50,      // 실제 이미지 크기 (간격 제외)
+        renderHeight: 30
       }
     },
     blueslime: {
