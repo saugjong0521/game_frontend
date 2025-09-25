@@ -53,7 +53,9 @@ export default class GameHandle {
       this.deltaTime = (currentTime - this.lastTime) / 1000;
       this.lastTime = currentTime;
 
+      // 게임 엔진 업데이트 및 렌더링
       if (this.gameState === 'playing' && this.stats) {
+        // 전체 게임 로직 업데이트 (이펙트 포함)
         this.gameEngine.update(this.deltaTime);
         this.gameEngine.render();
 
@@ -61,6 +63,10 @@ export default class GameHandle {
         this.elapsedTime += this.deltaTime;
         this.stats.time = Math.floor(this.elapsedTime);
         this.callbacks.onStatsUpdate({ ...this.stats });
+      } else if (this.gameState === 'paused' || this.gameState === 'levelup' || this.gameState === 'gameover') {
+        // 일시정지, 레벨업, 게임오버 상태에서도 이펙트는 계속 업데이트하고 렌더링
+        this.gameEngine.update(this.deltaTime);
+        this.gameEngine.render();
       }
     } catch (error) {
       console.error('Error in game loop:', error);
@@ -100,11 +106,13 @@ export default class GameHandle {
 
   pauseGame() {
     this.gameState = 'paused';
+    this.gameEngine.pause(); // 게임 엔진에 일시정지 알림
     this.callbacks.onStateChange('paused');
   }
 
   resumeGame() {
     this.gameState = 'playing';
+    this.gameEngine.resume(); // 게임 엔진에 재개 알림
     this.callbacks.onStateChange('playing');
   }
 
@@ -134,6 +142,10 @@ export default class GameHandle {
     this.finalStats = { ...this.stats };
     console.log('Player died - Final stats saved:', this.finalStats);
     console.log('Test mode flag at death:', this.isTestMode);
+    
+    // 게임오버 처리 (게임 엔진에서 처리)
+    this.gameEngine.onGameOver();
+    
     this.gameState = 'gameover';
     this.callbacks.onStateChange('gameover');
   }

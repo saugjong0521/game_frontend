@@ -8,7 +8,7 @@ import { GiBladeFall } from "react-icons/gi";
 const GameSetting = {
   player: {
     maxHp: 100,
-    invulnSeconds: 0.5,
+    invulnSeconds: 0.7,
     speed: 200,
     autoAttackSeconds: 1.0,
     damage: 25,

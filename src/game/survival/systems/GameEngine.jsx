@@ -4,6 +4,7 @@ import UI from '../setting/UI.jsx';
 import { Player, Enemy } from './Character.jsx';
 import getGameSounds from './GameSounds.jsx';
 import { AttackObj, ExpOrb } from './Play.jsx';
+import GameEffect from '../systems/GameEffect.jsx';
 
 export default class GameEngine {
   constructor(canvas, gameHandle) {
@@ -20,6 +21,24 @@ export default class GameEngine {
     this.camera = { x: 0, y: 0 };
     this.enemySpawnTimer = 0;
     this.attackTimer = 0;
+
+    // 게임 이펙트 시스템
+    try {
+      this.gameEffect = new GameEffect();
+      console.log('GameEffect initialized successfully');
+    } catch (error) {
+      console.error('Failed to create GameEffect:', error);
+      // 기본 이펙트 객체로 폴백
+      this.gameEffect = {
+        startScreenShake: (effectType) => {
+          console.log('Fallback startScreenShake called:', effectType);
+        },
+        update: (deltaTime) => { },
+        getScreenShakeOffset: () => ({ x: 0, y: 0 }),
+        isScreenShakeActive: () => false,
+        reset: () => { }
+      };
+    }
 
     // 시간 기반 난이도 시스템
     this.gameTime = 0;
@@ -55,6 +74,9 @@ export default class GameEngine {
       this.currentSpawnRate = GameSetting.enemySpawn.baseSeconds;
       this.isPaused = false;
 
+      // 게임 이펙트 초기화
+      this.gameEffect.reset();
+
       // 사운드 시스템 초기화 (첫 사용자 상호작용 시)
       this.initSoundsOnFirstInteraction();
     } catch (error) {
@@ -86,6 +108,9 @@ export default class GameEngine {
   }
 
   update(deltaTime) {
+    // 게임 이펙트 업데이트 (일시정지와 관계없이 항상 업데이트)
+    this.gameEffect.update(deltaTime);
+
     // 일시정지 상태에서는 게임 로직 업데이트 중단
     if (this.isPaused) {
       return;
@@ -121,7 +146,7 @@ export default class GameEngine {
       orb.update(deltaTime, this.player);
     });
 
-    // 충돌 검사 (사운드 포함)
+    // 충돌 검사 (사운드 및 이펙트 포함)
     this.handleCollisions();
 
     // 카메라 업데이트
@@ -317,7 +342,7 @@ export default class GameEngine {
   handleCollisions() {
     const stats = this.gameHandle.getStats();
 
-    // 플레이어와 적 충돌
+    // 플레이어와 적 충돌 (화면 흔들림 효과 추가)
     this.enemies.forEach(enemy => {
       if (this.checkCollision(this.player, enemy)) {
         if (this.player.tryTakeHit(enemy.contactDamage)) {
@@ -326,7 +351,11 @@ export default class GameEngine {
             getGameSounds().playHitSound();
           }
 
+          // 화면 흔들림 효과 시작 (hit 설정 사용)
+          this.gameEffect.startScreenShake('hit');
+
           this.gameHandle.onStatsChange({ hp: this.player.hp });
+          
           if (this.player.hp <= 0) {
             this.gameHandle.onPlayerDeath();
             return;
@@ -477,8 +506,14 @@ export default class GameEngine {
   }
 
   updateCamera() {
+    // 기본 카메라 위치
     this.camera.x = this.player.x - this.canvas.width / 2;
     this.camera.y = this.player.y - this.canvas.height / 2;
+
+    // 화면 흔들림 효과 적용
+    const shakeOffset = this.gameEffect.getScreenShakeOffset();
+    this.camera.x += shakeOffset.x;
+    this.camera.y += shakeOffset.y;
   }
 
   cleanupObjects() {
@@ -589,6 +624,9 @@ export default class GameEngine {
     this.currentSpawnRate = GameSetting.enemySpawn.baseSeconds;
     this.isPaused = false;
     this.wasPlayerMoving = false;
+
+    // 게임 이펙트 초기화
+    this.gameEffect.reset();
 
     // 사운드 시스템 초기화 및 BGM 시작
     await this.initSoundsOnFirstInteraction();
