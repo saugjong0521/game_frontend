@@ -20,28 +20,29 @@ jobs:
         script: |
           cd /home/frontend/over101/game_frontend
           
-          # Git pull 실패 시 배포 중단
+          # nvm 로드 및 Node.js 22 활성화
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+          nvm use 22
+          
           if ! git pull origin main; then
             echo "Git pull failed"
             exit 1
           fi
           
-          # 의존성 설치 실패 시 배포 중단
           if ! npm ci; then
             echo "npm ci failed"
             exit 1
           fi
           
-          # 빌드 실패 시 배포 중단
           if ! npm run build; then
             echo "Build failed"
             exit 1
           fi
           
-          # PM2 프로세스 관리
           pm2 delete game-frontend 2>/dev/null || echo "No existing process"
           
-          # serve가 설치되어 있는지 확인
           if ! command -v serve &> /dev/null; then
             npm install -g serve
           fi
