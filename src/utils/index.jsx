@@ -1,13 +1,17 @@
-import { useDeviceRotation } from "./checkDeviceRotation";
+import { 
+    useDeviceRotation,
+    useNavigationVisibility
+ } from "./checkDeviceRotation.jsx";
 import {
     getDeviceInfo,
     getLocationInfo,
     createApiHeaders
-} from "./deviceInfo";
+} from "./deviceInfo.jsx";
 
 export {
 
     useDeviceRotation,
+    useNavigationVisibility,
     getDeviceInfo,
     getLocationInfo,
     createApiHeaders
