@@ -1,11 +1,15 @@
-// systems/GameEngine.js - 정리된 버전
-import GameSetting from '../setting/GameSetting.jsx';
-import UI from '../setting/UI.jsx';
-import { Player, Enemy } from './Character.jsx';
-import getGameSounds from './GameSounds.jsx';
-import { AttackObj } from './Play.jsx';
-import GameEffect from '../systems/GameEffect.jsx';
-import CollisionHandler from './CollisionHandler.jsx';
+// systems/GameEngine.js
+import {
+  GameSetting,
+  UI,
+  Player,
+  Enemy,
+  gameSounds,
+  AttackObj,
+  GameEffect,
+  CollisionHandler
+} from '@/game/survival';
+
 
 export default class GameEngine {
   constructor(canvas, gameHandle) {
@@ -82,8 +86,7 @@ export default class GameEngine {
       // 게임 이펙트 초기화
       this.gameEffect.reset();
 
-      // 사운드 시스템 초기화 (첫 사용자 상호작용 시)
-      this.initSoundsOnFirstInteraction();
+      // 사운드는 startGame()에서만 초기화
     } catch (error) {
       console.error('Error in GameEngine init:', error);
     }
@@ -93,7 +96,6 @@ export default class GameEngine {
     if (this.soundInitialized) return;
 
     try {
-      const gameSounds = getGameSounds();
       await gameSounds.init();
       await gameSounds.resumeAudioContext();
       this.soundInitialized = true;
@@ -205,9 +207,9 @@ export default class GameEngine {
     const isMoving = Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1;
 
     if (isMoving && !this.wasPlayerMoving) {
-      getGameSounds().startWalkSound();
+      gameSounds.startWalkSound();
     } else if (!isMoving && this.wasPlayerMoving) {
-      getGameSounds().stopWalkSound();
+      gameSounds.stopWalkSound();
     }
 
     this.wasPlayerMoving = isMoving;
@@ -330,7 +332,7 @@ export default class GameEngine {
       this.attackObjs.push(attackObj);
 
       if (this.soundInitialized) {
-        getGameSounds().playAttackSound();
+        gameSounds.playAttackSound();
       }
     }
   }
@@ -375,7 +377,7 @@ export default class GameEngine {
     const cards = GameSetting.levelUpCards;
 
     if (this.soundInitialized) {
-      getGameSounds().playLevelSelectSound();
+      gameSounds.playLevelSelectSound();
     }
 
     switch (cardType) {
@@ -532,15 +534,33 @@ export default class GameEngine {
 
     this.gameEffect.reset();
 
+    // 사운드 시스템 초기화 및 로딩 완료 대기
+    console.log('Initializing sound system...');
     await this.initSoundsOnFirstInteraction();
+    
     if (this.soundInitialized) {
-      getGameSounds().playBGM();
+      console.log('Waiting for BGM to load...');
+      const bgmLoaded = await gameSounds.waitForBGMLoad();
+      
+      if (bgmLoaded) {
+        console.log('BGM loaded, attempting to play...');
+        const started = gameSounds.playBGM();
+        if (started) {
+          console.log('BGM started successfully');
+        } else {
+          console.log('BGM failed to start (user interaction may be required)');
+        }
+      } else {
+        console.log('BGM load timeout - starting game without BGM');
+      }
+    } else {
+      console.log('Sound system not initialized - starting game without sound');
     }
   }
 
   onGameOver() {
     if (this.soundInitialized) {
-      getGameSounds().playGameOverSound();
+      gameSounds.playGameOverSound();
     }
   }
 
@@ -564,7 +584,7 @@ export default class GameEngine {
   pause() {
     this.isPaused = true;
     if (this.soundInitialized) {
-      getGameSounds().stopWalkSound();
+      gameSounds.stopWalkSound();
       this.wasPlayerMoving = false;
     }
   }
@@ -572,7 +592,7 @@ export default class GameEngine {
   resume() {
     this.isPaused = false;
     if (this.soundInitialized) {
-      getGameSounds().resumeAudioContext();
+      gameSounds.resumeAudioContext();
     }
   }
 
@@ -595,19 +615,19 @@ export default class GameEngine {
 
   setMasterVolume(volume) {
     if (this.soundInitialized) {
-      getGameSounds().setMasterVolume(volume);
+      gameSounds.setMasterVolume(volume);
     }
   }
 
   setBGMVolume(volume) {
     if (this.soundInitialized) {
-      getGameSounds().setBGMVolume(volume);
+      gameSounds.setBGMVolume(volume);
     }
   }
 
   setSFXVolume(volume) {
     if (this.soundInitialized) {
-      getGameSounds().setSFXVolume(volume);
+      gameSounds.setSFXVolume(volume);
     }
   }
 
@@ -623,7 +643,7 @@ export default class GameEngine {
     this.wasPlayerMoving = false;
 
     if (this.soundInitialized) {
-      getGameSounds().stopAllSounds();
+      gameSounds.stopAllSounds();
     }
   }
 }

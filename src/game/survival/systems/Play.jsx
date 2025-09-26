@@ -1,4 +1,4 @@
-import UI from '../setting/UI.jsx';
+import { UI } from '@/game/survival';
 
 export class AttackObj {
   constructor(startX, startY, targetX, targetY) {

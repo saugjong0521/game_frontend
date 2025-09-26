@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { PATH } from "../constant/path";
-import { useTokenStore } from "../store/useTokenStore";
-import { API } from "../api/api";
-import { createApiHeaders } from "../utils/deviceInfo";
+import { PATH } from "@/constant";
+import { useTokenStore } from "@/store";
+import { API } from "@/api";
+import { createApiHeaders } from "@/utils";
 
 // 티켓 타입 상수
 export const TICKET_TYPES = {

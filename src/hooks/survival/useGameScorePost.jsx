@@ -1,25 +1,28 @@
 import { useState } from "react";
-import { PATH } from "../constant/path";
-import { useTokenStore } from "../store/useTokenStore";
-import { API } from "../api/api";
-import { createApiHeaders } from "../utils/deviceInfo";
-import { useUserInfoStore } from "../store/useUserinfoStore";
+import { PATH } from "@/constant";
+import { useTokenStore } from "@/store";
+import { API } from "@/api";
+import { createApiHeaders } from "@/utils";
 
-const useGameStart = () => {
+const useGameScorePost = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [gameSession, setGameSession] = useState(null);
-  
-  // useUserinfoStore에서 account (address) 가져오기
-  const userInfo = useUserInfoStore((state) => state.userInfo);
-  const account = userInfo?.account;
+  const [scoreResult, setScoreResult] = useState(null);
   
   // useTokenStore에서 토큰 관련 함수들 가져오기
   const { getAuthHeader, isAuthenticated } = useTokenStore();
 
-  // 게임 시작
-  const startGame = async () => {
+  // 게임 점수 저장
+  const postGameScore = async (kill, level) => {
+    if (!isAuthenticated) {
+      setError('Authentication required. Please sign in first');
+      return null;
+    }
 
+    if (kill === undefined || level === undefined) {
+      setError('Kill and level are required');
+      return null;
+    }
 
     setLoading(true);
     setError(null);
@@ -36,14 +39,16 @@ const useGameStart = () => {
         'Content-Type': 'application/json'
       };
 
-      const response = await API.post(PATH.GAMESTART, {
+      const response = await API.post(PATH.SCOREPOST, {
+        kill: kill,
+        level: level
       }, { headers });
       
-      setGameSession(response.data);
+      setScoreResult(response.data);
       return response.data;
     } catch (err) {
-      console.error('No ticket available.');
-      setError('No ticket available.');
+      console.error('Failed to save score:', err);
+      setError(err.response?.data?.message || 'Failed to save score');
       return null;
     } finally {
       setLoading(false);
@@ -54,21 +59,20 @@ const useGameStart = () => {
   const reset = () => {
     setLoading(false);
     setError(null);
-    setGameSession(null);
+    setScoreResult(null);
   };
 
   return {
     // 상태
     loading,
     error,
-    gameSession,
-    account,
+    scoreResult,
     isAuthenticated,
     
     // 메서드
-    startGame,
+    postGameScore,
     reset
   };
 };
 
-export { useGameStart };
+export { useGameScorePost };

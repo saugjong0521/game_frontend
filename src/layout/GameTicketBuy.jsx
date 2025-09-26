@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGameTicketAdd } from '../hooks/useGameTicketAdd';
-import { useGetUserInfo } from '../hooks/useGetUserInfo';
+import { 
+  useGetUserInfo,
+  useGameTicketAdd
+ } from '@/hooks';
 
 const GameTicketBuy = () => {
   const [openSection, setOpenSection] = useState('overview');

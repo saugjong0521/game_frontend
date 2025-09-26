@@ -1,5 +1,5 @@
 // systems/GameEffect.jsx - 게임 이펙트 관리 클래스
-import EffectSetting from '../setting/EffectSetting.jsx';
+import { EffectSetting } from '@/game/survival';
 
 export default class GameEffect {
   constructor() {

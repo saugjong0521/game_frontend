@@ -1,5 +1,8 @@
-import GameSetting from '../setting/GameSetting.jsx';
-import UI from '../setting/UI.jsx';
+import {
+  GameSetting,
+  UI
+} from '@/game/survival';
+
 
 // Player.js
 export class Player {

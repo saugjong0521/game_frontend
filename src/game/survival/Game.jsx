@@ -1,14 +1,16 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import UI from './setting/UI.jsx';
-import PlayerSetting from './setting/PlayerSetting.jsx';
-import GameHandle from './systems/GameHandle.jsx';
-import { ArrowPad, Joystick } from './systems/GameControl.jsx';
-import { useGameStart } from '../../hooks/useGameStart.jsx';
-import { useGameScorePost } from '../../hooks/useGameScorePost.jsx';
-import SettingModal from './SettingModal.jsx';
-import GameModal from './GameModal.jsx';
-import { CiSettings } from "react-icons/ci";
-import { CiPause1 } from "react-icons/ci";
+import {
+  UI,
+  PlayerSetting,
+  GameHandle,
+  ArrowPad,
+  Joystick,
+  GameModal,
+  SettingModal
+} from '@/game/survival';
+import { CiSettings, CiPause1 } from "react-icons/ci";
+import { useGameStart, useGameScorePost } from '@/hooks';
+
 
 const Game = () => {
   const canvasRef = useRef(null);

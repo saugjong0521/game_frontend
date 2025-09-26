@@ -1,6 +1,8 @@
 // systems/GameHandle.js
-import GameSetting from '../setting/GameSetting.jsx';
-import GameEngine from './GameEngine.jsx';
+import {
+  GameSetting,
+  GameEngine
+} from '@/game/survival';
 
 export default class GameHandle {
   constructor(canvas, callbacks) {

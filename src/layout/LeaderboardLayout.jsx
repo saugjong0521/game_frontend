@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { useBringLeaderBoard } from '../hooks/useBringLeaderBoard';
-import { useLeaderBoardStore } from '../store/useLeaderBoardStore';
+import { useBringLeaderBoard } from '@/hooks';
+import { useLeaderBoardStore } from '@/store';
 
 const LeaderBoardLayout = () => {
     // 훅에서 API 호출 함수만 가져오기

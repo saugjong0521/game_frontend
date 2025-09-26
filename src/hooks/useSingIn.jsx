@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { API } from "../api/api"; 
-import { PATH } from "../constant/path"; 
-import { useTokenStore } from "../store/useTokenStore";
-import { createApiHeaders } from "../utils/deviceInfo";
+import { API } from "@/api"; 
+import { PATH } from "@/constant"; 
+import { useTokenStore } from "@/store";
+import { createApiHeaders } from "@/utils";
 
 const useSignIn = () => {
   const { setToken, clearToken } = useTokenStore();

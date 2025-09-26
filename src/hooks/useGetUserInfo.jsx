@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { PATH } from "../constant/path";
-import { useTokenStore } from "../store/useTokenStore";
-import { API } from "../api/api";
-import { createApiHeaders } from "../utils/deviceInfo";
-import { useUserInfoStore } from "../store/useUserinfoStore";
+import { PATH } from "@/constant";
+import { API } from "@/api";
+import { createApiHeaders } from "@/utils";
+import { 
+  useUserInfoStore,
+  useTokenStore
+ } from "@/store";
 
 const useGetUserInfo = () => {
   const [loading, setLoading] = useState(false);

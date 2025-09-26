@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import PlayerSetting from './setting/PlayerSetting.jsx';
-import getGameSoundsInstance from './systems/GameSounds.jsx';
+import {
+    PlayerSetting,
+    gameSounds
+} from '@/game/survival';
 
-// 싱글톤 인스턴스 가져오기
-const gameSounds = getGameSoundsInstance();
-
-const SettingsModal = ({ onClose, gameEngineRef }) => {
+const SettingModal = ({ onClose, gameEngineRef }) => {
     // 컨트롤 설정
     const [controlScheme, setControlScheme] = useState(() => PlayerSetting.controlScheme);
     const [joystickSide, setJoystickSide] = useState(() => PlayerSetting.joystickPosition);
@@ -31,7 +30,6 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
             setMasterVolume(currentMaster);
             setBgmVolume(currentBGM);
             setSfxVolume(currentSFX);
-
         };
 
         loadCurrentVolumes();
@@ -329,4 +327,4 @@ const SettingsModal = ({ onClose, gameEngineRef }) => {
     );
 };
 
-export default SettingsModal;
+export default SettingModal;

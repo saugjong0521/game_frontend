@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useSignIn } from '../hooks/useSingIn';
-import { useGetUserInfo } from '../hooks/useGetUserInfo';
+import { 
+    useGetUserInfo,
+    useSignIn
+ } from '@/hooks';
 
 const Home = () => {
 
@@ -71,8 +73,6 @@ const Home = () => {
                 await getUserInfo();
             }
             
-            // 폼 데이터 초기화
-            setFormData({ username: '', password: '' });
         } catch (error) {
             console.error('Login process failed:', error);
         }

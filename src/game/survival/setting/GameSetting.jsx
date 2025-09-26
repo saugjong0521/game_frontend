@@ -1,7 +1,9 @@
-import { GiWalkingBoot } from "react-icons/gi";
-import { GiHeartPlus } from "react-icons/gi";
-import { GiBladeDrag } from "react-icons/gi";
-import { GiBladeFall } from "react-icons/gi";
+import {
+  GiWalkingBoot,
+  GiHeartPlus,
+  GiBladeDrag,
+  GiBladeFall
+} from "react-icons/gi";
 
 
 // Game balance settings
@@ -24,7 +26,7 @@ const GameSetting = {
     baseToLevel: 50,
     perLevelIncrement: 12
   },
-  
+
   // 시간 기반 스케일링 시스템
   timeScaling: {
     scalingInterval: 20,        // 20초마다 난이도 증가
@@ -34,7 +36,7 @@ const GameSetting = {
     spawnRateIncrease: 0.05,    // 주기당 스폰 속도 증가 (5% 더 빨리)
     maxSpawnRate: 0.2,          // 최소 스폰 간격 (초)
   },
-  
+
   enemySpawn: {
     baseSeconds: 1.5,  // 기본 스폰 간격
     probabilities: {

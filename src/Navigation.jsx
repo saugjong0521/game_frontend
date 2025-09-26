@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useTokenStore } from './store/useTokenStore';
-import { useGetUserInfo } from './hooks/useGetUserInfo';
-import { useUserInfoStore } from './store/useUserinfoStore';
+import { 
+    useTokenStore,
+    useUserInfoStore
+ } from '@/store';
+import { useGetUserInfo } from '@/hooks';
 
 const Navigation = ({ isHidden = false }) => {
     const [activeDropdown, setActiveDropdown] = useState(null);

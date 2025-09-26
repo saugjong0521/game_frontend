@@ -1,6 +1,6 @@
-import { API } from "../api/api";
-import { PATH } from "../constant/path";
-import { useLeaderBoardStore } from "../store/useLeaderBoardStore";
+import { API } from "@/api";
+import { PATH } from "@/constant";
+import { useLeaderBoardStore } from "@/store";
 
 const useBringLeaderBoard = () => {
   // Zustand 스토어에서 상태와 액션 가져오기

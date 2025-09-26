@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import GameSetting from './setting/GameSetting.jsx';
+import { GameSetting } from '@/game/survival';
 
 const GameModal = ({ 
   gameState, 

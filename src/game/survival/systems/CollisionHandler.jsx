@@ -1,8 +1,10 @@
 // systems/CollisionHandler.jsx
-import GameSetting from '../setting/GameSetting.jsx';
-import UI from '../setting/UI.jsx';
-import { ExpOrb } from './Play.jsx';
-import getGameSounds from './GameSounds.jsx';
+import {
+    GameSetting,
+    UI,
+    ExpOrb,
+    gameSounds
+} from '@/game/survival';
 
 export default class CollisionHandler {
   constructor(gameEngine) {
@@ -33,7 +35,7 @@ export default class CollisionHandler {
       if (this.checkCollision(this.engine.player, enemy)) {
         if (this.engine.player.tryTakeHit(enemy.contactDamage)) {
           if (this.engine.soundInitialized) {
-            getGameSounds().playHitSound();
+            gameSounds.playHitSound();
           }
           this.engine.gameEffect.startScreenShake('hit');
           this.engine.gameHandle.onStatsChange({ hp: this.engine.player.hp });
@@ -110,7 +112,7 @@ export default class CollisionHandler {
     });
 
     if (this.engine.soundInitialized) {
-      getGameSounds().playLevelUpSound();
+      gameSounds.playLevelUpSound();
     }
 
     this.engine.gameHandle.onLevelUp();

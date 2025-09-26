@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import UI from '../setting/UI.jsx';
+import { UI } from '@/game/survival';
 
 // Arrow Pad Component - 영역 벗어남 감지 포함
 export const ArrowPad = ({ onMove, position = 'left', offset = { x: 24, y: 24 } }) => {
