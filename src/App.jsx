@@ -11,6 +11,7 @@ import {
 } from '@/layout';
 import { Game } from '@/game/survival';
 import { MobileUseModal } from '@/modal';
+import FortuneFrenzy from './game/fortunefrenzy/FortuneFrenzy.jsx';
 
 
 function App() {
@@ -142,6 +143,15 @@ function App() {
                 path="survival"
                 element={
                   <Game
+                    isLandscape={isLandscape}
+                    isNavHidden={isNavHidden}
+                  />
+                }
+              />
+              <Route
+                path="fortune"
+                element={
+                  <FortuneFrenzy
                     isLandscape={isLandscape}
                     isNavHidden={isNavHidden}
                   />

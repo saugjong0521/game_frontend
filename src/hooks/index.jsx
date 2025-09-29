@@ -8,6 +8,12 @@ import {
     useGameStart
 } from "./survival";
 
+import { 
+    useFortuneStart,
+    useSelectBox,
+    useFortuneCashout
+} from "./fortunefrenzy";
+
 
 export {
 
@@ -18,4 +24,8 @@ export {
     useBringLeaderBoard,
     useGameScorePost,
     useGameStart,
+
+    useFortuneStart,
+    useSelectBox,
+    useFortuneCashout
 }

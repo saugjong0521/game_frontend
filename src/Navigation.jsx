@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
+import {
     useTokenStore,
     useUserInfoStore
- } from '@/store';
+} from '@/store';
 import { useGetUserInfo } from '@/hooks';
 
 const Navigation = ({ isHidden = false }) => {
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    
+
     // store에서 사용자 정보와 토큰 정보 가져오기
     const { userInfo } = useUserInfoStore();
     const { isAuthenticated } = useTokenStore();
-    
+
     // 사용자 정보를 가져오는 hook
     const { getUserInfo, loading } = useGetUserInfo();
-    
+
     // 토큰이 있고 사용자 정보가 없을 때 사용자 정보 가져오기
     useEffect(() => {
         if (isAuthenticated && !userInfo) {
@@ -44,9 +44,8 @@ const Navigation = ({ isHidden = false }) => {
 
     return (
         <>
-            <nav className={`fixed top-0 left-0 w-full bg-black/90 backdrop-blur-md border-b border-purple-500/30 z-[1000] px-4 lg:px-8 transition-transform duration-300 ${
-                isHidden ? '-translate-y-full' : 'translate-y-0'
-            }`}>
+            <nav className={`fixed top-0 left-0 w-full bg-black/90 backdrop-blur-md border-b border-purple-500/30 z-[1000] px-4 lg:px-8 transition-transform duration-300 ${isHidden ? '-translate-y-full' : 'translate-y-0'
+                }`}>
                 <div className="max-w-7xl mx-auto flex justify-between items-center h-16 md:h-18">
                     {/* 로고 */}
                     <Link
@@ -155,7 +154,7 @@ const Navigation = ({ isHidden = false }) => {
                     </div>
 
                     {/* Mobile Hamburger Button */}
-                    <button 
+                    <button
                         className="xl:hidden flex flex-col bg-black/95 items-center justify-center w-8 h-8 space-y-1 group"
                         onClick={toggleMobileMenu}
                         aria-label="Toggle mobile menu"
@@ -171,11 +170,11 @@ const Navigation = ({ isHidden = false }) => {
             {mobileMenuOpen && (
                 <div className="fixed inset-0 z-[1001] xl:hidden">
                     {/* Backdrop */}
-                    <div 
+                    <div
                         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                         onClick={closeMobileMenu}
                     ></div>
-                    
+
                     {/* Menu Content */}
                     <div className="absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-md border-b border-purple-500/30 shadow-2xl animate-in slide-in-from-top-4 duration-300">
                         <div className="px-4 py-6 space-y-4">
@@ -207,6 +206,13 @@ const Navigation = ({ isHidden = false }) => {
                                         onClick={closeMobileMenu}
                                     >
                                         SURVIVAL
+                                    </Link>
+                                    <Link
+                                        to="/game/fortune"
+                                        className="block text-white no-underline px-4 py-3 font-medium transition-all duration-300 rounded-md m-1 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500 hover:translate-x-1"
+                                        onClick={closeDropdown}
+                                    >
+                                        Fortune Frenzy
                                     </Link>
                                 </div>
 

@@ -8,6 +8,11 @@ const PATH = {
 
     ISSUEGAMETOKEN: "/api/auth/token",
     BRINGTICKET: "/api/users/info",
+
+
+    STARTFORTUNE: "/minesweeper/game/start",
+    SELECTFORTUNE: "/minesweeper/game/select",
+    FORTUNECASHOUT: "/minesweeper/game/cashout"
   };
   
   export { PATH };
