@@ -4,6 +4,7 @@ import { useFortuneStart, useSelectBox, useFortuneCashout } from '@/hooks';
 
 const FortuneFrenzy = () => {
     const scrollContainerRef = useRef(null);
+    const gameContentRef = useRef(null);
 
     const {
         gameStarted,
@@ -36,6 +37,12 @@ const FortuneFrenzy = () => {
             }, 100);
         }
     }, [gameStarted]);
+
+    useEffect(() => {
+        if ((isGameOver || isCashedOut) && gameContentRef.current) {
+            gameContentRef.current.scrollTop = 0;
+        }
+    }, [isGameOver, isCashedOut]);
 
     const handleScroll = () => {
         if (!scrollContainerRef.current || loading) return;
@@ -100,15 +107,13 @@ const FortuneFrenzy = () => {
 
     return (
         <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col">
-            {/* 제목 영역 10% */}
             <div className="h-[10vh] flex items-center justify-center px-4">
                 <h1 className="text-2xl sm:text-4xl font-bold text-white text-center">
                     Fortune Frenzy
                 </h1>
             </div>
 
-            {/* 게임 컨텐츠 영역 70% */}
-            <div className="h-[70vh] px-2 sm:px-4 flex flex-col overflow-y-auto">
+            <div ref={gameContentRef} className="h-[70vh] px-2 sm:px-4 flex flex-col overflow-y-auto">
                 {!gameStarted ? (
                     <div className="flex-1 flex items-start justify-center">
                         <button
@@ -151,7 +156,6 @@ const FortuneFrenzy = () => {
                             </div>
                         )}
                         
-                        {/* Session/Round 정보 + Cash Out 버튼 영역 (70%의 10% = 약 7vh) */}
                         <div className="flex-shrink-0 mb-3 sm:mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
                             <div className="text-white text-xs sm:text-sm">
                                 <span className="text-gray-400">Session:</span>
@@ -170,7 +174,6 @@ const FortuneFrenzy = () => {
                             </button>
                         </div>
 
-                        {/* 게임 플레이 영역 (70%의 나머지 60%) */}
                         <div
                             ref={scrollContainerRef}
                             onScroll={handleScroll}
@@ -274,7 +277,6 @@ const FortuneFrenzy = () => {
                 )}
             </div>
 
-            {/* 하단 공백 10% */}
             <div className="h-[10vh]"></div>
 
             <style>{`
