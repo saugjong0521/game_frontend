@@ -201,9 +201,10 @@ const FortuneFrenzy = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex-1 grid gap-1 sm:gap-2" style={{
-                                            gridTemplateColumns: `repeat(${roundData.box_count}, minmax(0, 1fr))`
-                                        }}>
+                                        <div className="flex-1 flex justify-center items-center">
+                                            <div className="flex flex-wrap justify-center gap-1 sm:gap-2" style={{
+                                                maxWidth: roundData.box_count <= 4 ? '100%' : '75%'
+                                            }}>
                                             {Array.from({ length: roundData.box_count }).map((_, i) => {
                                                 const isSelected = selectedBoxes[roundData.round] === i;
                                                 const isMine = minePositions[roundData.round] === i;
@@ -213,7 +214,12 @@ const FortuneFrenzy = () => {
                                                         key={i}
                                                         onClick={() => handleBoxClick(roundData.round, i)}
                                                         disabled={!isCurrentRound || loading || isGameOver || isCashedOut}
-                                                        className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-lg sm:text-2xl shadow-lg ${
+                                                        style={{
+                                                            width: roundData.box_count <= 4 ? 'calc(25% - 4px)' : 'calc(23% - 4px)',
+                                                            minWidth: '40px',
+                                                            maxWidth: '70px'
+                                                        }}
+                                                        className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-2xl shadow-lg ${
                                                             isPastRound
                                                                 ? isMine
                                                                     ? 'bg-red-600 border-red-800'
@@ -253,10 +259,7 @@ const FortuneFrenzy = () => {
                                                     </button>
                                                 );
                                             })}
-                                        </div>
-
-                                        <div className="w-10 sm:w-14 text-center text-gray-400 text-[10px] sm:text-sm flex-shrink-0">
-                                            {roundData.multiplier.toFixed(2)}x
+                                            </div>
                                         </div>
                                     </div>
                                 );
