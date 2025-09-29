@@ -71,7 +71,6 @@ const FortuneFrenzy = () => {
         if (!confirmed) return;
 
         try {
-            // 이전 라운드의 cumulative_multiplier를 가져오기 (현재 라운드가 아님!)
             const previousRoundData = rounds.find(r => r.round === currentRound - 1);
             const multiplier = previousRoundData?.cumulative_multiplier || 1.0;
             
@@ -95,19 +94,23 @@ const FortuneFrenzy = () => {
         setIsCashedOut(false);
         setFinalRound(0);
         setFinalMultiplier(0);
-        clearSession(); // 세션 클리어 추가
+        clearSession();
         clearRounds();
     };
 
     return (
-        <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-start p-2">
-            <div className="w-full max-w-6xl">
-                <h1 className="text-2xl pt-4 sm:text-4xl font-bold text-white text-center mb-4 sm:mb-8">
+        <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col">
+            {/* 제목 영역 10% */}
+            <div className="h-[10vh] flex items-center justify-center px-4">
+                <h1 className="text-2xl sm:text-4xl font-bold text-white text-center">
                     Fortune Frenzy
                 </h1>
+            </div>
 
+            {/* 게임 컨텐츠 영역 70% */}
+            <div className="h-[70vh] px-2 sm:px-4 flex flex-col overflow-y-auto">
                 {!gameStarted ? (
-                    <div className="flex justify-center">
+                    <div className="flex-1 flex items-start justify-center">
                         <button
                             onClick={startGame}
                             disabled={loading}
@@ -117,7 +120,7 @@ const FortuneFrenzy = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="bg-gray-800/50 rounded-xl p-3 sm:p-6 backdrop-blur-sm border border-purple-500/30">
+                    <div className="flex-1 bg-gray-800/50 rounded-xl p-3 sm:p-6 backdrop-blur-sm border border-purple-500/30 flex flex-col">
                         {isGameOver && (
                             <div className="mb-4 bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-center">
                                 <h2 className="text-2xl font-bold text-red-400 mb-2">💥 Game Over!</h2>
@@ -148,7 +151,8 @@ const FortuneFrenzy = () => {
                             </div>
                         )}
                         
-                        <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+                        {/* Session/Round 정보 + Cash Out 버튼 영역 (70%의 10% = 약 7vh) */}
+                        <div className="flex-shrink-0 mb-3 sm:mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
                             <div className="text-white text-xs sm:text-sm">
                                 <span className="text-gray-400">Session:</span>
                                 <span className="ml-1 sm:ml-2 font-mono">{sessionId?.slice(0, 8)}...</span>
@@ -166,10 +170,11 @@ const FortuneFrenzy = () => {
                             </button>
                         </div>
 
+                        {/* 게임 플레이 영역 (70%의 나머지 60%) */}
                         <div
                             ref={scrollContainerRef}
                             onScroll={handleScroll}
-                            className="h-[calc(100vh-45vh)] overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-4 custom-scrollbar"
+                            className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-4 custom-scrollbar"
                         >
                             {loading && (
                                 <div className="text-center py-2 text-gray-400 text-sm">
@@ -268,6 +273,9 @@ const FortuneFrenzy = () => {
                     </div>
                 )}
             </div>
+
+            {/* 하단 공백 10% */}
+            <div className="h-[10vh]"></div>
 
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar {
