@@ -100,7 +100,7 @@ const FortuneFrenzy = () => {
     };
 
     return (
-        <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-center p-2 sm:p-4">
+        <div className="h-full w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-center p-2 sm:p-4">
             <div className="w-full max-w-6xl">
                 <h1 className="text-2xl sm:text-4xl font-bold text-white text-center mb-4 sm:mb-8">
                     Fortune Frenzy
