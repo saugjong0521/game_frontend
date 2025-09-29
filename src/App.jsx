@@ -113,7 +113,7 @@ function App() {
         {isLandscape && (
           <button
             onClick={toggleNavigation}
-            className="fixed top-2 right-16 z-[1002] bg-black/80 backdrop-blur-md text-white p-2 rounded-lg border border-purple-500/30 hover:bg-purple-500/20 transition-all duration-300"
+            className="fixed top-3.5 right-16 z-[1000] bg-black/80 backdrop-blur-md text-white p-2 rounded-lg border border-purple-500/30 hover:bg-purple-500/20 transition-all duration-300"
             aria-label={isNavHidden ? "Show navigation" : "Hide navigation"}
             title={isNavHidden ? "Show Navigation" : "Hide Navigation"}
           >
