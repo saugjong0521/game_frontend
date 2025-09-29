@@ -1,18 +1,16 @@
 const PATH = {
     SIGNIN: "/auth/login",
-    USERINFO: "/api/users",
-    TICKETADD: "/api/tickets/add",
-    GAMESTART: "/api/game/start",
-    SCOREPOST: "/api/score/save",
-    LEADERBOARD: "/api/leaderboard",
-
-    ISSUEGAMETOKEN: "/api/auth/token",
-    BRINGTICKET: "/api/users/info",
-
+    
+    USERINFO: "/survival/game/users",
+    TICKETADD: "/survival/game/tickets/add",
+    GAMESTART: "/survival/game/play/start",
+    SCOREPOST: "/survival/game/score/save",
+    LEADERBOARD: "/survival/game/leaderboard",
 
     STARTFORTUNE: "/minesweeper/game/start",
     SELECTFORTUNE: "/minesweeper/game/select",
-    FORTUNECASHOUT: "/minesweeper/game/cashout"
+    FORTUNECASHOUT: "/minesweeper/game/cashout",
+    FORTUNELEADERBOARD: "/minesweeper/stats/leaderboard"
   };
   
   export { PATH };

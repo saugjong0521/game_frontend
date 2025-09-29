@@ -236,6 +236,13 @@ const Navigation = ({ isHidden = false }) => {
                                     >
                                         SURVIVAL
                                     </Link>
+                                                                        <Link
+                                        to="/leaderboard/fortune"
+                                        className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500"
+                                        onClick={closeMobileMenu}
+                                    >
+                                        Fortune Frenzy
+                                    </Link>
                                 </div>
                             </div>
                         </div>

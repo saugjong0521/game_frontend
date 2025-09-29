@@ -13,6 +13,11 @@ import { Game } from '@/game/survival';
 import { MobileUseModal } from '@/modal';
 import FortuneFrenzy from './game/fortunefrenzy/FortuneFrenzy.jsx';
 
+import {
+  SurvivalLeaderBoard,
+  FortuneLeaderBoard
+} from '@/layout'
+
 
 function App() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -166,7 +171,8 @@ function App() {
 
             {/* 리더보드 관련 라우트 */}
             <Route path="/leaderboard" element={<LeaderBoardLayout />}>
-              <Route path="survival" element={<div>Survival Leaderboard</div>} />
+              <Route path="survival" element={<SurvivalLeaderBoard />} />
+              <Route path="fortune" element={<FortuneLeaderBoard />} />
             </Route>
           </Routes>
         </div>

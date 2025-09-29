@@ -4,9 +4,17 @@ const useLeaderBoardStore = create((set, get) => ({
   // 상태
   loading: false,
   error: null,
+  
+  // Survival 게임 데이터
   topScoreData: null,
   mostPlayData: null,
-  currentType: 'TopScore',
+  
+  // Fortune 게임 데이터
+  bestRoundData: null,
+  totalGamesData: null,
+  
+  currentType: null,
+  currentGame: null, // 'survival' or 'fortune'
 
   // 로딩 상태 설정
   setLoading: (loading) => set({ loading }),
@@ -14,36 +22,52 @@ const useLeaderBoardStore = create((set, get) => ({
   // 에러 상태 설정
   setError: (error) => set({ error }),
 
-  // 현재 타입 설정
-  setCurrentType: (type) => set({ currentType: type }),
+  // 현재 게임 및 타입 설정
+  setCurrentGameAndType: (game, type) => set({ 
+    currentGame: game, 
+    currentType: type 
+  }),
 
-  // TopScore 리더보드 데이터 설정
-  setTopScoreData: (data) => set({ topScoreData: data }),
+  // 범용 데이터 설정 함수
+  setData: (game, type, data) => {
+    if (game === 'survival') {
+      if (type === 'TopScore') {
+        set({ topScoreData: data });
+      } else if (type === 'MostPlay') {
+        set({ mostPlayData: data });
+      }
+    } else if (game === 'fortune') {
+      if (type === 'BestRound') {
+        set({ bestRoundData: data });
+      } else if (type === 'TotalGames') {
+        set({ totalGamesData: data });
+      }
+    }
+  },
 
-  // MostPlay 리더보드 데이터 설정
-  setMostPlayData: (data) => set({ mostPlayData: data }),
-
-  // 수정이 필요한 부분:
+  // 현재 선택된 데이터 가져오기
   getCurrentData: () => {
     const state = get();
-    const data = state.currentType === 'TopScore' ? state.topScoreData : state.mostPlayData;
-    // data가 이미 배열이므로 data.items가 아닌 data를 직접 반환해야 함
-    return data; // data.items 제거
-  },
-
-  getDataByType: (type) => {
-    const state = get();
-    const data = type === 'TopScore' ? state.topScoreData : state.mostPlayData;
-    return data; // data.items 제거 필요하다면
-  },
-
-  // 타입에 따른 데이터 설정
-  setDataByType: (type, data) => {
-    if (type === 'TopScore') {
-      set({ topScoreData: data });
-    } else if (type === 'MostPlay') {
-      set({ mostPlayData: data });
+    const { currentGame, currentType } = state;
+    
+    if (currentGame === 'survival') {
+      return currentType === 'TopScore' ? state.topScoreData : state.mostPlayData;
+    } else if (currentGame === 'fortune') {
+      return currentType === 'BestRound' ? state.bestRoundData : state.totalGamesData;
     }
+    return null;
+  },
+
+  // 특정 게임/타입의 데이터 가져오기
+  getData: (game, type) => {
+    const state = get();
+    
+    if (game === 'survival') {
+      return type === 'TopScore' ? state.topScoreData : state.mostPlayData;
+    } else if (game === 'fortune') {
+      return type === 'BestRound' ? state.bestRoundData : state.totalGamesData;
+    }
+    return null;
   },
 
   // 모든 상태 초기화
@@ -52,15 +76,18 @@ const useLeaderBoardStore = create((set, get) => ({
     error: null,
     topScoreData: null,
     mostPlayData: null,
-    currentType: 'TopScore'
+    bestRoundData: null,
+    totalGamesData: null,
+    currentType: null,
+    currentGame: null
   }),
 
-  // 특정 타입 데이터만 초기화
-  resetDataByType: (type) => {
-    if (type === 'TopScore') {
-      set({ topScoreData: null });
-    } else if (type === 'MostPlay') {
-      set({ mostPlayData: null });
+  // 특정 게임의 데이터만 초기화
+  resetGame: (game) => {
+    if (game === 'survival') {
+      set({ topScoreData: null, mostPlayData: null });
+    } else if (game === 'fortune') {
+      set({ bestRoundData: null, totalGamesData: null });
     }
   },
 
