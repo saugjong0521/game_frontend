@@ -100,9 +100,9 @@ const FortuneFrenzy = () => {
     };
 
     return (
-        <div className="h-full w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-center p-2 sm:p-4">
+        <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-start p-2">
             <div className="w-full max-w-6xl">
-                <h1 className="text-2xl sm:text-4xl font-bold text-white text-center mb-4 sm:mb-8">
+                <h1 className="text-2xl pt-4 sm:text-4xl font-bold text-white text-center mb-4 sm:mb-8">
                     Fortune Frenzy
                 </h1>
 
@@ -169,7 +169,7 @@ const FortuneFrenzy = () => {
                         <div
                             ref={scrollContainerRef}
                             onScroll={handleScroll}
-                            className="h-[500px] sm:h-[600px] overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-4 custom-scrollbar"
+                            className="h-[calc(100vh-45vh)] overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-4 custom-scrollbar"
                         >
                             {loading && (
                                 <div className="text-center py-2 text-gray-400 text-sm">
