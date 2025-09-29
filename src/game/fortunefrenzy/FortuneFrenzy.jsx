@@ -196,11 +196,11 @@ const FortuneFrenzy = () => {
                                             isCurrentRound
                                                 ? 'border-yellow-500 shadow-lg shadow-yellow-500/20'
                                                 : isPastRound
-                                                ? 'border-green-700 opacity-60'
+                                                ? 'border-green-700'
                                                 : 'border-gray-700'
                                         }`}
                                     >
-                                        <div className="w-12 sm:w-20 text-right flex-shrink-0">
+                                        <div className={`w-12 sm:w-20 text-right flex-shrink-0 ${isPastRound ? 'opacity-60' : ''}`}>
                                             <div className="text-yellow-400 font-bold text-sm sm:text-lg">
                                                 {roundData.cumulative_multiplier.toFixed(2)}x
                                             </div>
@@ -227,22 +227,22 @@ const FortuneFrenzy = () => {
                                                             minWidth: '40px',
                                                             maxWidth: '70px'
                                                         }}
-                                                        className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-2xl shadow-lg ${
+                                                        className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-2xl ${
                                                             isPastRound
                                                                 ? isMine
                                                                     ? 'bg-red-600 border-red-800'
                                                                     : isSelected
                                                                     ? 'bg-green-600 border-green-800'
-                                                                    : 'bg-gray-700 border-gray-600'
+                                                                    : 'bg-gray-700 border-gray-600 shadow-lg'
                                                                 : isCurrentRound
                                                                 ? (isGameOver || isCashedOut)
                                                                     ? isMine
                                                                         ? 'bg-red-600 border-red-800'
                                                                         : isSelected
                                                                         ? 'bg-green-600 border-green-800'
-                                                                        : 'bg-gray-700 border-gray-600'
-                                                                    : 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:border-purple-500 hover:from-purple-600/20 hover:to-gray-700 active:scale-95 cursor-pointer'
-                                                                : 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
+                                                                        : 'bg-gray-700 border-gray-600 shadow-lg'
+                                                                    : 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:border-purple-500 hover:from-purple-600/20 hover:to-gray-700 active:scale-95 cursor-pointer shadow-lg'
+                                                                : 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed shadow-lg'
                                                         }`}
                                                     >
                                                         {isPastRound
