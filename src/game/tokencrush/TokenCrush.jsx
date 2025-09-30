@@ -24,8 +24,9 @@ const TokenCrush = () => {
   const [dragCurrent, setDragCurrent] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showShuffleNotice, setShowShuffleNotice] = useState(false);
+  const [combo, setCombo] = useState(0);
+  const [showCombo, setShowCombo] = useState(false);
 
-  // 초기 보드 생성
   const createBoard = () => {
     const newBoard = [];
     for (let row = 0; row < GRID_SIZE; row++) {
@@ -40,70 +41,130 @@ const TokenCrush = () => {
     return newBoard;
   };
 
-  // 3개 이상 매칭 체크
   const checkMatches = (currentBoard) => {
-    const matches = [];
+    const allMatches = [];
+    const processed = new Set();
     
-    // 가로 체크
     for (let row = 0; row < GRID_SIZE; row++) {
-      for (let col = 0; col < GRID_SIZE - 2; col++) {
-        // null 체크 추가
-        if (!currentBoard[row][col] || !currentBoard[row][col + 1] || !currentBoard[row][col + 2]) continue;
+      for (let col = 0; col < GRID_SIZE; col++) {
+        if (!currentBoard[row][col] || processed.has(`${row}-${col}`)) continue;
         
         const token = currentBoard[row][col].token;
+        
+        let horizontalMatch = [];
+        if (col <= GRID_SIZE - 3) {
+          if (currentBoard[row][col + 1]?.token === token && 
+              currentBoard[row][col + 2]?.token === token) {
+            horizontalMatch = [
+              {row, col},
+              {row, col: col + 1},
+              {row, col: col + 2}
+            ];
+          }
+        }
+        
+        let verticalMatch = [];
+        if (row <= GRID_SIZE - 3) {
+          if (currentBoard[row + 1]?.[col]?.token === token && 
+              currentBoard[row + 2]?.[col]?.token === token) {
+            verticalMatch = [
+              {row, col},
+              {row: row + 1, col},
+              {row: row + 2, col}
+            ];
+          }
+        }
+        
+        if (horizontalMatch.length > 0 && verticalMatch.length > 0) {
+          const combined = [...horizontalMatch, ...verticalMatch];
+          const unique = Array.from(
+            new Set(combined.map(c => `${c.row}-${c.col}`))
+          ).map(str => {
+            const [r, c] = str.split('-').map(Number);
+            return {row: r, col: c};
+          });
+          
+          allMatches.push({
+            cells: unique,
+            type: 'TL',
+            count: unique.length
+          });
+          
+          unique.forEach(c => processed.add(`${c.row}-${c.col}`));
+        }
+      }
+    }
+    
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE - 2; col++) {
+        if (!currentBoard[row][col] || processed.has(`${row}-${col}`)) continue;
+        
+        const token = currentBoard[row][col].token;
+        if (!currentBoard[row][col + 1] || !currentBoard[row][col + 2]) continue;
+        
         if (token === currentBoard[row][col + 1].token && 
             token === currentBoard[row][col + 2].token) {
           let matchLength = 3;
           while (col + matchLength < GRID_SIZE && 
                  currentBoard[row][col + matchLength] &&
-                 currentBoard[row][col + matchLength].token === token) {
+                 currentBoard[row][col + matchLength].token === token &&
+                 !processed.has(`${row}-${col + matchLength}`)) {
             matchLength++;
           }
+          
+          const cells = [];
           for (let i = 0; i < matchLength; i++) {
-            matches.push({ row, col: col + i });
+            cells.push({row, col: col + i});
+            processed.add(`${row}-${col + i}`);
           }
+          
+          const type = matchLength >= 5 ? 'LINE5' : matchLength === 4 ? 'FOUR' : 'THREE';
+          allMatches.push({cells, type, count: matchLength});
           col += matchLength - 1;
         }
       }
     }
 
-    // 세로 체크
     for (let col = 0; col < GRID_SIZE; col++) {
       for (let row = 0; row < GRID_SIZE - 2; row++) {
-        // null 체크 추가
-        if (!currentBoard[row][col] || !currentBoard[row + 1][col] || !currentBoard[row + 2][col]) continue;
+        if (!currentBoard[row][col] || processed.has(`${row}-${col}`)) continue;
         
         const token = currentBoard[row][col].token;
+        if (!currentBoard[row + 1]?.[col] || !currentBoard[row + 2]?.[col]) continue;
+        
         if (token === currentBoard[row + 1][col].token && 
             token === currentBoard[row + 2][col].token) {
           let matchLength = 3;
           while (row + matchLength < GRID_SIZE && 
-                 currentBoard[row + matchLength][col] &&
-                 currentBoard[row + matchLength][col].token === token) {
+                 currentBoard[row + matchLength]?.[col] &&
+                 currentBoard[row + matchLength][col].token === token &&
+                 !processed.has(`${row + matchLength}-${col}`)) {
             matchLength++;
           }
+          
+          const cells = [];
           for (let i = 0; i < matchLength; i++) {
-            matches.push({ row: row + i, col });
+            cells.push({row: row + i, col});
+            processed.add(`${row + i}-${col}`);
           }
+          
+          const type = matchLength >= 5 ? 'LINE5' : matchLength === 4 ? 'FOUR' : 'THREE';
+          allMatches.push({cells, type, count: matchLength});
           row += matchLength - 1;
         }
       }
     }
 
-    return matches;
+    return allMatches;
   };
 
-  // 가능한 매칭이 있는지 체크
   const hasPossibleMoves = (currentBoard) => {
-    // 보드가 비어있으면 false
     if (!currentBoard || currentBoard.length === 0) return false;
     
-    // 가로 스왑 체크
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE - 1; col++) {
         if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row][col + 1]) continue;
         
-        // 오른쪽과 스왑
         const testBoard = currentBoard.map(r => [...r]);
         [testBoard[row][col], testBoard[row][col + 1]] = 
         [testBoard[row][col + 1], testBoard[row][col]];
@@ -114,12 +175,10 @@ const TokenCrush = () => {
       }
     }
     
-    // 세로 스왑 체크
     for (let col = 0; col < GRID_SIZE; col++) {
       for (let row = 0; row < GRID_SIZE - 1; row++) {
         if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row + 1] || !currentBoard[row + 1][col]) continue;
         
-        // 아래와 스왑
         const testBoard = currentBoard.map(r => [...r]);
         [testBoard[row][col], testBoard[row + 1][col]] = 
         [testBoard[row + 1][col], testBoard[row][col]];
@@ -133,12 +192,10 @@ const TokenCrush = () => {
     return false;
   };
 
-  // 보드 섞기 (가능한 매칭이 없을 때)
   const shuffleBoard = (currentBoard) => {
     const newBoard = [];
     const allTokens = [];
     
-    // 현재 보드의 모든 토큰 수집
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE; col++) {
         if (currentBoard[row] && currentBoard[row][col]) {
@@ -147,13 +204,11 @@ const TokenCrush = () => {
       }
     }
     
-    // Fisher-Yates 셔플
     for (let i = allTokens.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [allTokens[i], allTokens[j]] = [allTokens[j], allTokens[i]];
     }
     
-    // 새 보드에 재배치
     let tokenIndex = 0;
     for (let row = 0; row < GRID_SIZE; row++) {
       newBoard[row] = [];
@@ -167,6 +222,7 @@ const TokenCrush = () => {
     
     return newBoard;
   };
+
   const fillEmpty = (currentBoard) => {
     const newBoard = currentBoard.map(row => [...row]);
     const falling = [];
@@ -195,52 +251,65 @@ const TokenCrush = () => {
     return { newBoard, falling };
   };
 
-  // 재귀적으로 매칭 체크 및 제거
-  const processMatches = async (currentBoard) => {
+  const processMatches = async (currentBoard, currentCombo = 0) => {
     setIsAnimating(true);
     
     const matches = checkMatches(currentBoard);
     if (matches.length === 0) {
-      // 가능한 매칭이 없으면 보드 섞기
+      setCombo(0);
+      setShowCombo(false);
+      
       if (!hasPossibleMoves(currentBoard)) {
-        // 1초간 알림 표시
         setShowShuffleNotice(true);
         await new Promise(resolve => setTimeout(resolve, 1000));
         setShowShuffleNotice(false);
         
-        // 보드 섞기
         const shuffled = shuffleBoard(currentBoard);
         setBoard(shuffled);
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        // 섞은 후 다시 체크 - 재귀적으로 처리
         setIsAnimating(false);
-        return processMatches(shuffled);
+        return processMatches(shuffled, 0);
       }
       
       setIsAnimating(false);
       return currentBoard;
     }
 
-    // 1. 매칭된 셀 표시 (깜빡이는 효과)
-    const uniqueMatches = Array.from(
-      new Set(matches.map(m => `${m.row}-${m.col}`))
-    ).map(str => {
-      const [row, col] = str.split('-').map(Number);
-      return { row, col };
+    const newCombo = currentCombo + 1;
+    setCombo(newCombo);
+    
+    let totalScore = 0;
+    const allCells = [];
+    
+    matches.forEach(match => {
+      const basePoints = match.type === 'LINE5' ? 15 : 
+                        match.type === 'TL' ? 13 :
+                        match.type === 'FOUR' ? 12 : 10;
+      const matchScore = match.count * basePoints;
+      totalScore += matchScore;
+      allCells.push(...match.cells);
     });
     
-    setMatchingCells(uniqueMatches.map(m => ({ ...m, phase: 'blinking' })));
+    const comboMultiplier = Math.pow(1.1, newCombo - 1);
+    const finalScore = Math.floor(totalScore * comboMultiplier);
+    
+    console.log(`콤보: ${newCombo}, 기본점수: ${totalScore}, 배율: ${comboMultiplier.toFixed(2)}x, 최종점수: ${finalScore}`);
+    
+    if (newCombo > 1) {
+      setShowCombo(true);
+    }
+    
+    setMatchingCells(allCells.map(c => ({ ...c, phase: 'blinking' })));
     await new Promise(resolve => setTimeout(resolve, 400));
     
-    // 2. 터지는 효과
-    setMatchingCells(uniqueMatches.map(m => ({ ...m, phase: 'exploding' })));
+    setMatchingCells(allCells.map(c => ({ ...c, phase: 'exploding' })));
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // 3. 매칭된 토큰 제거
+    setScore(prev => prev + finalScore);
+    
     const newBoard = currentBoard.map(row => [...row]);
-    setScore(prev => prev + uniqueMatches.length * 10);
-    uniqueMatches.forEach(({ row, col }) => {
+    allCells.forEach(({ row, col }) => {
       newBoard[row][col] = null;
     });
     
@@ -248,22 +317,18 @@ const TokenCrush = () => {
     setBoard(newBoard);
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // 4. 빈 공간 채우기 (토큰 떨어지기)
     const { newBoard: filledBoard, falling } = fillEmpty(newBoard);
     setFallingCells(falling);
     setBoard(filledBoard);
     await new Promise(resolve => setTimeout(resolve, 600));
     setFallingCells([]);
     
-    // 5. 다시 매칭 체크
-    return processMatches(filledBoard);
+    return processMatches(filledBoard, newCombo);
   };
 
-  // 토큰 스왑
   const swapTokens = async (row1, col1, row2, col2) => {
     if (isAnimating || timeLeft <= 0) return;
 
-    // 스왑 애니메이션 표시
     setSwappingCells([{row: row1, col: col1}, {row: row2, col: col2}]);
     
     const newBoard = board.map(row => [...row]);
@@ -277,10 +342,9 @@ const TokenCrush = () => {
     const matches = checkMatches(newBoard);
     
     if (matches.length > 0) {
-      const finalBoard = await processMatches(newBoard);
+      const finalBoard = await processMatches(newBoard, 0);
       setBoard(finalBoard);
     } else {
-      // 매칭 실패시 다시 되돌리기
       await new Promise(resolve => setTimeout(resolve, 100));
       setSwappingCells([{row: row1, col: col1}, {row: row2, col: col2}]);
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -293,7 +357,6 @@ const TokenCrush = () => {
     setSelectedCell(null);
   };
 
-  // 셀 클릭 핸들러
   const handleCellClick = (row, col) => {
     if (isAnimating || timeLeft <= 0) return;
 
@@ -311,10 +374,8 @@ const TokenCrush = () => {
     }
   };
 
-  // 드래그 시작
   const handleDragStart = (row, col, e) => {
     if (isAnimating || timeLeft <= 0) return;
-    e.preventDefault();
     
     const touch = e.touches ? e.touches[0] : e;
     
@@ -328,13 +389,11 @@ const TokenCrush = () => {
     setDragOffset({ x: 0, y: 0 });
   };
 
-  // 드래그 중
   const handleDragMove = (e) => {
     if (!dragStart || isAnimating || timeLeft <= 0) return;
     
     const touch = e.touches ? e.touches[0] : e;
     
-    // 드래그 오프셋 계산
     const offsetX = touch.clientX - dragStart.startX;
     const offsetY = touch.clientY - dragStart.startY;
     setDragOffset({ x: offsetX, y: offsetY });
@@ -345,7 +404,6 @@ const TokenCrush = () => {
       const row = parseInt(element.dataset.row);
       const col = parseInt(element.dataset.col);
       
-      // 인접한 셀만 하이라이트
       const rowDiff = Math.abs(row - dragStart.row);
       const colDiff = Math.abs(col - dragStart.col);
       
@@ -357,7 +415,6 @@ const TokenCrush = () => {
     }
   };
 
-  // 드래그 종료
   const handleDragEnd = () => {
     if (!dragStart) {
       return;
@@ -367,7 +424,6 @@ const TokenCrush = () => {
       const rowDiff = dragCurrent.row - dragStart.row;
       const colDiff = dragCurrent.col - dragStart.col;
 
-      // 상하좌우로만 1칸 이동 가능
       if ((Math.abs(rowDiff) === 1 && colDiff === 0) || 
           (Math.abs(colDiff) === 1 && rowDiff === 0)) {
         swapTokens(dragStart.row, dragStart.col, dragCurrent.row, dragCurrent.col);
@@ -379,7 +435,6 @@ const TokenCrush = () => {
     setDragOffset({ x: 0, y: 0 });
   };
 
-  // 게임 시작
   const startGame = async () => {
     let initialBoard = createBoard();
     setBoard(initialBoard);
@@ -387,7 +442,6 @@ const TokenCrush = () => {
     setScore(0);
     setTimeLeft(60);
     
-    // 타이머 시작
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -399,11 +453,10 @@ const TokenCrush = () => {
     }, 1000);
     
     await new Promise(resolve => setTimeout(resolve, 500));
-    initialBoard = await processMatches(initialBoard);
+    initialBoard = await processMatches(initialBoard, 0);
     setBoard(initialBoard);
   };
 
-  // 게임 재시작
   const restartGame = () => {
     setGameStarted(false);
     setSelectedCell(null);
@@ -414,88 +467,50 @@ const TokenCrush = () => {
     setDragCurrent(null);
     setDragOffset({ x: 0, y: 0 });
     setShowShuffleNotice(false);
+    setCombo(0);
+    setShowCombo(false);
   };
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 overflow-hidden pt-16">
       <style>{`
         @keyframes explode {
-          0% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scale(1.3);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(1.5);
-          }
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.3); }
+          100% { opacity: 0; transform: scale(1.5); }
         }
-        
         @keyframes blink {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.3;
-          }
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
-        
         @keyframes fall {
-          0% {
-            transform: translateY(-20px);
-            opacity: 0.5;
-          }
-          100% {
-            transform: translateY(0);
-            opacity: 1;
-          }
+          0% { transform: translateY(-20px); opacity: 0.5; }
+          100% { transform: translateY(0); opacity: 1; }
         }
-        
         @keyframes swap {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(0.85);
-          }
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(0.85); }
         }
-        
         @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
         }
         
-        .exploding {
-          animation: explode 0.5s ease-out forwards;
+        @keyframes fadeIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
         }
         
-        .blinking {
-          animation: blink 0.4s ease-in-out 2;
-        }
+        .exploding { animation: explode 0.5s ease-out forwards; }
+        .blinking { animation: blink 0.4s ease-in-out 2; }
+        .falling { animation: fall 0.6s ease-out; }
+        .swapping { animation: swap 0.3s ease-in-out; }
+        .idle-pulse { animation: pulse 2s ease-in-out infinite; }
+        .dragging { transition: none !important; z-index: 50; pointer-events: none; }
+        .game-board { touch-action: none; -webkit-user-select: none; user-select: none; }
         
-        .falling {
-          animation: fall 0.6s ease-out;
-        }
-        
-        .swapping {
-          animation: swap 0.3s ease-in-out;
-        }
-        
-        .idle-pulse {
-          animation: pulse 2s ease-in-out infinite;
-        }
-        
-        .dragging {
-          transition: none !important;
-          z-index: 50;
-          pointer-events: none;
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
         }
       `}</style>
       
@@ -514,7 +529,6 @@ const TokenCrush = () => {
           </div>
         ) : (
           <div className="w-full h-full flex flex-col">
-            {/* 타이머 프로그레스 바 */}
             <div className="mb-2 flex-shrink-0">
               <div className="flex justify-between items-center mb-1">
                 <div className="text-white text-lg font-bold">Score: <span className="text-yellow-400">{score}</span></div>
@@ -541,9 +555,7 @@ const TokenCrush = () => {
               </div>
             )}
 
-            {/* 게임 보드 */}
             <div className="flex-1 flex items-start justify-center min-h-0 relative">
-              {/* 섞기 알림 모달 */}
               {showShuffleNotice && (
                 <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
                   <div className="bg-gradient-to-br from-purple-600 to-pink-600 px-8 py-6 rounded-2xl shadow-2xl border-2 border-white/30 animate-pulse">
@@ -554,8 +566,21 @@ const TokenCrush = () => {
                 </div>
               )}
               
+              {showCombo && combo > 1 && (
+                <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-40 animate-fadeIn">
+                  <div className="px-6 py-3">
+                    <p className="text-7xl font-black text-center drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent" style={{ fontWeight: 900, WebkitTextStroke: '2px rgba(255,165,0,0.3)' }}>
+                      {combo} COMBO!
+                    </p>
+                    <p className="text-2xl font-black text-center text-yellow-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] mt-1">
+                      {Math.floor(Math.pow(1.1, combo - 1) * 100)}% 점수!
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <div 
-                className="gap-1 bg-gray-900/50 p-2 rounded-lg w-full max-w-[min(100vw-1rem,100vh-8rem)]"
+                className="gap-1 bg-gray-900/50 p-2 rounded-lg w-full max-w-[min(100vw-1rem,100vh-8rem)] game-board"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
