@@ -11,7 +11,8 @@ import {
 } from '@/layout';
 import { Game } from '@/game/survival';
 import { MobileUseModal } from '@/modal';
-import FortuneFrenzy from './game/fortunefrenzy/FortuneFrenzy.jsx';
+import { FortuneFrenzy } from '@/game/fortunefrenzy';
+import { TokenCrush } from '@/game/tokencrush';
 
 import {
   SurvivalLeaderBoard,
@@ -162,6 +163,16 @@ function App() {
                   />
                 }
               />
+              <Route
+                path="tokencrush"
+                element={
+                  <TokenCrush
+                    isLandscape={isLandscape}
+                    isNavHidden={isNavHidden}
+                  />
+                }
+              />
+
             </Route>
 
             {/* 가이드 관련 라우트 */}

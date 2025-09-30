@@ -116,6 +116,13 @@ const Navigation = ({ isHidden = false, onMenuStateChange }) => {
                                             >
                                                 FORTUNE FRENZY
                                             </Link>
+                                            <Link
+                                                to="/game/tokencrush"
+                                                className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 hover:text-purple-500"
+                                                onClick={closeMobileMenu}
+                                            >
+                                                TOKEN CRUSH
+                                            </Link>
                                         </div>
                                     )}
                                 </div>
