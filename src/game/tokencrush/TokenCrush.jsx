@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const GRID_SIZE = 8;
+const GRID_SIZE = 7;
 const TOKENS = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT'];
 const TOKEN_COLORS = {
   BTC: 'bg-orange-500',
@@ -14,7 +14,7 @@ const TokenCrush = () => {
   const [board, setBoard] = useState([]);
   const [selectedCell, setSelectedCell] = useState(null);
   const [score, setScore] = useState(0);
-  const [moves, setMoves] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [isAnimating, setIsAnimating] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [matchingCells, setMatchingCells] = useState([]);
@@ -23,6 +23,7 @@ const TokenCrush = () => {
   const [dragStart, setDragStart] = useState(null);
   const [dragCurrent, setDragCurrent] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [showShuffleNotice, setShowShuffleNotice] = useState(false);
 
   // 초기 보드 생성
   const createBoard = () => {
@@ -46,11 +47,15 @@ const TokenCrush = () => {
     // 가로 체크
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE - 2; col++) {
+        // null 체크 추가
+        if (!currentBoard[row][col] || !currentBoard[row][col + 1] || !currentBoard[row][col + 2]) continue;
+        
         const token = currentBoard[row][col].token;
         if (token === currentBoard[row][col + 1].token && 
             token === currentBoard[row][col + 2].token) {
           let matchLength = 3;
           while (col + matchLength < GRID_SIZE && 
+                 currentBoard[row][col + matchLength] &&
                  currentBoard[row][col + matchLength].token === token) {
             matchLength++;
           }
@@ -65,11 +70,15 @@ const TokenCrush = () => {
     // 세로 체크
     for (let col = 0; col < GRID_SIZE; col++) {
       for (let row = 0; row < GRID_SIZE - 2; row++) {
+        // null 체크 추가
+        if (!currentBoard[row][col] || !currentBoard[row + 1][col] || !currentBoard[row + 2][col]) continue;
+        
         const token = currentBoard[row][col].token;
         if (token === currentBoard[row + 1][col].token && 
             token === currentBoard[row + 2][col].token) {
           let matchLength = 3;
           while (row + matchLength < GRID_SIZE && 
+                 currentBoard[row + matchLength][col] &&
                  currentBoard[row + matchLength][col].token === token) {
             matchLength++;
           }
@@ -84,7 +93,80 @@ const TokenCrush = () => {
     return matches;
   };
 
-  // 빈 공간 채우기
+  // 가능한 매칭이 있는지 체크
+  const hasPossibleMoves = (currentBoard) => {
+    // 보드가 비어있으면 false
+    if (!currentBoard || currentBoard.length === 0) return false;
+    
+    // 가로 스왑 체크
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE - 1; col++) {
+        if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row][col + 1]) continue;
+        
+        // 오른쪽과 스왑
+        const testBoard = currentBoard.map(r => [...r]);
+        [testBoard[row][col], testBoard[row][col + 1]] = 
+        [testBoard[row][col + 1], testBoard[row][col]];
+        
+        if (checkMatches(testBoard).length > 0) {
+          return true;
+        }
+      }
+    }
+    
+    // 세로 스왑 체크
+    for (let col = 0; col < GRID_SIZE; col++) {
+      for (let row = 0; row < GRID_SIZE - 1; row++) {
+        if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row + 1] || !currentBoard[row + 1][col]) continue;
+        
+        // 아래와 스왑
+        const testBoard = currentBoard.map(r => [...r]);
+        [testBoard[row][col], testBoard[row + 1][col]] = 
+        [testBoard[row + 1][col], testBoard[row][col]];
+        
+        if (checkMatches(testBoard).length > 0) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
+  // 보드 섞기 (가능한 매칭이 없을 때)
+  const shuffleBoard = (currentBoard) => {
+    const newBoard = [];
+    const allTokens = [];
+    
+    // 현재 보드의 모든 토큰 수집
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        if (currentBoard[row] && currentBoard[row][col]) {
+          allTokens.push(currentBoard[row][col].token);
+        }
+      }
+    }
+    
+    // Fisher-Yates 셔플
+    for (let i = allTokens.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allTokens[i], allTokens[j]] = [allTokens[j], allTokens[i]];
+    }
+    
+    // 새 보드에 재배치
+    let tokenIndex = 0;
+    for (let row = 0; row < GRID_SIZE; row++) {
+      newBoard[row] = [];
+      for (let col = 0; col < GRID_SIZE; col++) {
+        newBoard[row][col] = {
+          token: allTokens[tokenIndex++],
+          id: `${row}-${col}-${Date.now()}-${Math.random()}`
+        };
+      }
+    }
+    
+    return newBoard;
+  };
   const fillEmpty = (currentBoard) => {
     const newBoard = currentBoard.map(row => [...row]);
     const falling = [];
@@ -119,6 +201,23 @@ const TokenCrush = () => {
     
     const matches = checkMatches(currentBoard);
     if (matches.length === 0) {
+      // 가능한 매칭이 없으면 보드 섞기
+      if (!hasPossibleMoves(currentBoard)) {
+        // 1초간 알림 표시
+        setShowShuffleNotice(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setShowShuffleNotice(false);
+        
+        // 보드 섞기
+        const shuffled = shuffleBoard(currentBoard);
+        setBoard(shuffled);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // 섞은 후 다시 체크 - 재귀적으로 처리
+        setIsAnimating(false);
+        return processMatches(shuffled);
+      }
+      
       setIsAnimating(false);
       return currentBoard;
     }
@@ -162,7 +261,7 @@ const TokenCrush = () => {
 
   // 토큰 스왑
   const swapTokens = async (row1, col1, row2, col2) => {
-    if (isAnimating || moves <= 0) return;
+    if (isAnimating || timeLeft <= 0) return;
 
     // 스왑 애니메이션 표시
     setSwappingCells([{row: row1, col: col1}, {row: row2, col: col2}]);
@@ -178,7 +277,6 @@ const TokenCrush = () => {
     const matches = checkMatches(newBoard);
     
     if (matches.length > 0) {
-      setMoves(prev => prev - 1);
       const finalBoard = await processMatches(newBoard);
       setBoard(finalBoard);
     } else {
@@ -197,7 +295,7 @@ const TokenCrush = () => {
 
   // 셀 클릭 핸들러
   const handleCellClick = (row, col) => {
-    if (isAnimating || moves <= 0) return;
+    if (isAnimating || timeLeft <= 0) return;
 
     if (!selectedCell) {
       setSelectedCell({ row, col });
@@ -215,7 +313,7 @@ const TokenCrush = () => {
 
   // 드래그 시작
   const handleDragStart = (row, col, e) => {
-    if (isAnimating || moves <= 0) return;
+    if (isAnimating || timeLeft <= 0) return;
     e.preventDefault();
     
     const touch = e.touches ? e.touches[0] : e;
@@ -232,7 +330,7 @@ const TokenCrush = () => {
 
   // 드래그 중
   const handleDragMove = (e) => {
-    if (!dragStart || isAnimating || moves <= 0) return;
+    if (!dragStart || isAnimating || timeLeft <= 0) return;
     
     const touch = e.touches ? e.touches[0] : e;
     
@@ -265,7 +363,7 @@ const TokenCrush = () => {
       return;
     }
 
-    if (dragCurrent && !isAnimating && moves > 0) {
+    if (dragCurrent && !isAnimating && timeLeft > 0) {
       const rowDiff = dragCurrent.row - dragStart.row;
       const colDiff = dragCurrent.col - dragStart.col;
 
@@ -287,7 +385,18 @@ const TokenCrush = () => {
     setBoard(initialBoard);
     setGameStarted(true);
     setScore(0);
-    setMoves(30);
+    setTimeLeft(60);
+    
+    // 타이머 시작
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
     
     await new Promise(resolve => setTimeout(resolve, 500));
     initialBoard = await processMatches(initialBoard);
@@ -304,10 +413,11 @@ const TokenCrush = () => {
     setDragStart(null);
     setDragCurrent(null);
     setDragOffset({ x: 0, y: 0 });
+    setShowShuffleNotice(false);
   };
 
   return (
-    <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-center p-4">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 overflow-hidden pt-16">
       <style>{`
         @keyframes explode {
           0% {
@@ -389,13 +499,12 @@ const TokenCrush = () => {
         }
       `}</style>
       
-      <div className="max-w-2xl w-full">
-        <h1 className="text-4xl sm:text-5xl font-bold text-white text-center mb-8 idle-pulse">
-          Token Crush
-        </h1>
-
+      <div className="w-full h-full flex flex-col p-2">
         {!gameStarted ? (
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-8 mt-20">
+            <h1 className="text-5xl sm:text-6xl font-bold text-white text-center idle-pulse">
+              Token Crush
+            </h1>
             <button
               onClick={startGame}
               className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
@@ -404,91 +513,103 @@ const TokenCrush = () => {
             </button>
           </div>
         ) : (
-          <div className="bg-gray-800/50 rounded-xl p-6 backdrop-blur-sm border border-purple-500/30">
-            <div className="flex justify-between mb-6 text-white">
-              <div className="text-center">
-                <div className="text-gray-400 text-sm">Score</div>
-                <div className="text-2xl font-bold text-yellow-400">{score}</div>
+          <div className="w-full h-full flex flex-col">
+            {/* 타이머 프로그레스 바 */}
+            <div className="mb-2 flex-shrink-0">
+              <div className="flex justify-between items-center mb-1">
+                <div className="text-white text-lg font-bold">Score: <span className="text-yellow-400">{score}</span></div>
+                <div className="text-white text-lg font-bold">{timeLeft}s</div>
               </div>
-              <div className="text-center">
-                <div className="text-gray-400 text-sm">Moves</div>
-                <div className="text-2xl font-bold text-green-400">{moves}</div>
+              <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-1000"
+                  style={{ width: `${(timeLeft / 60) * 100}%` }}
+                ></div>
               </div>
-              <button
-                onClick={restartGame}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Restart
-              </button>
             </div>
 
-            {moves === 0 && (
-              <div className="mb-4 bg-purple-900/50 border-2 border-purple-500 rounded-lg p-4 text-center">
-                <h2 className="text-2xl font-bold text-purple-400 mb-2">Game Over!</h2>
-                <p className="text-white mb-4">Final Score: {score}</p>
+            {timeLeft === 0 && (
+              <div className="mb-2 bg-purple-900/50 border-2 border-purple-500 rounded-lg p-3 text-center flex-shrink-0">
+                <h2 className="text-xl font-bold text-purple-400 mb-1">Game Over!</h2>
+                <p className="text-white mb-2">Final Score: {score}</p>
                 <button
                   onClick={restartGame}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
                 >
                   Play Again
                 </button>
               </div>
             )}
 
-            <div 
-              className="grid grid-cols-8 gap-1 bg-gray-900/50 p-2 rounded-lg"
-              onMouseMove={handleDragMove}
-              onMouseUp={handleDragEnd}
-              onMouseLeave={handleDragEnd}
-              onTouchMove={handleDragMove}
-              onTouchEnd={handleDragEnd}
-            >
-              {board.map((row, rowIndex) =>
-                row.map((cell, colIndex) => {
-                  const matchingCell = matchingCells.find(m => m.row === rowIndex && m.col === colIndex);
-                  const isSwapping = swappingCells.some(s => s.row === rowIndex && s.col === colIndex);
-                  const isFalling = fallingCells.some(f => f.row === rowIndex && f.col === colIndex);
-                  const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
-                  const isDragTarget = dragCurrent?.row === rowIndex && dragCurrent?.col === colIndex;
-                  const isDragging = dragStart?.row === rowIndex && dragStart?.col === colIndex;
-                  
-                  return (
-                    <button
-                      key={cell?.id || `${rowIndex}-${colIndex}`}
-                      data-row={rowIndex}
-                      data-col={colIndex}
-                      onClick={() => handleCellClick(rowIndex, colIndex)}
-                      onMouseDown={(e) => handleDragStart(rowIndex, colIndex, e)}
-                      onTouchStart={(e) => handleDragStart(rowIndex, colIndex, e)}
-                      disabled={isAnimating || moves <= 0}
-                      style={isDragging ? {
-                        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(1.2)`,
-                        opacity: 0.9
-                      } : {}}
-                      className={`
-                        aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm
-                        ${cell ? TOKEN_COLORS[cell.token] : 'bg-gray-700'}
-                        ${isSelected && !isDragging ? 'ring-4 ring-white scale-110' : ''}
-                        ${isDragTarget && dragStart ? 'ring-4 ring-yellow-400 scale-110' : ''}
-                        ${isDragging ? 'dragging ring-4 ring-cyan-400' : ''}
-                        ${!isAnimating && moves > 0 ? 'hover:scale-105 cursor-pointer' : 'cursor-not-allowed'}
-                        shadow-lg
-                        ${isDragging ? '' : 'transition-all duration-200 ease-out'}
-                        ${matchingCell?.phase === 'blinking' ? 'blinking' : ''}
-                        ${matchingCell?.phase === 'exploding' ? 'exploding' : ''}
-                        ${isSwapping ? 'swapping' : ''}
-                        ${isFalling ? 'falling' : ''}
-                      `}
-                    >
-                      {cell?.token}
-                    </button>
-                  );
-                })
+            {/* 게임 보드 */}
+            <div className="flex-1 flex items-start justify-center min-h-0 relative">
+              {/* 섞기 알림 모달 */}
+              {showShuffleNotice && (
+                <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
+                  <div className="bg-gradient-to-br from-purple-600 to-pink-600 px-8 py-6 rounded-2xl shadow-2xl border-2 border-white/30 animate-pulse">
+                    <p className="text-white text-2xl font-bold text-center">
+                      🔀 보드 섞는 중...
+                    </p>
+                  </div>
+                </div>
               )}
-            </div>
-
-            <div className="mt-6 text-center text-gray-400 text-sm">
-              Click two adjacent tokens to swap them, or drag to move. Match 3 or more to score!
+              
+              <div 
+                className="gap-1 bg-gray-900/50 p-2 rounded-lg w-full max-w-[min(100vw-1rem,100vh-8rem)]"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
+                  aspectRatio: '1/1'
+                }}
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchMove={handleDragMove}
+                onTouchEnd={handleDragEnd}
+              >
+                {board.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => {
+                    const matchingCell = matchingCells.find(m => m.row === rowIndex && m.col === colIndex);
+                    const isSwapping = swappingCells.some(s => s.row === rowIndex && s.col === colIndex);
+                    const isFalling = fallingCells.some(f => f.row === rowIndex && f.col === colIndex);
+                    const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
+                    const isDragTarget = dragCurrent?.row === rowIndex && dragCurrent?.col === colIndex;
+                    const isDragging = dragStart?.row === rowIndex && dragStart?.col === colIndex;
+                    
+                    return (
+                      <button
+                        key={cell?.id || `${rowIndex}-${colIndex}`}
+                        data-row={rowIndex}
+                        data-col={colIndex}
+                        onClick={() => handleCellClick(rowIndex, colIndex)}
+                        onMouseDown={(e) => handleDragStart(rowIndex, colIndex, e)}
+                        onTouchStart={(e) => handleDragStart(rowIndex, colIndex, e)}
+                        disabled={isAnimating || timeLeft <= 0}
+                        style={isDragging ? {
+                          transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(1.2)`,
+                          opacity: 0.9
+                        } : {}}
+                        className={`
+                          aspect-square rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm
+                          ${cell ? TOKEN_COLORS[cell.token] : 'bg-gray-700'}
+                          ${isSelected && !isDragging ? 'ring-2 ring-white scale-110' : ''}
+                          ${isDragTarget && dragStart ? 'ring-2 ring-yellow-400 scale-110' : ''}
+                          ${isDragging ? 'dragging ring-2 ring-cyan-400' : ''}
+                          ${!isAnimating && timeLeft > 0 ? 'hover:scale-105 cursor-pointer' : 'cursor-not-allowed'}
+                          shadow-lg
+                          ${isDragging ? '' : 'transition-all duration-200 ease-out'}
+                          ${matchingCell?.phase === 'blinking' ? 'blinking' : ''}
+                          ${matchingCell?.phase === 'exploding' ? 'exploding' : ''}
+                          ${isSwapping ? 'swapping' : ''}
+                          ${isFalling ? 'falling' : ''}
+                        `}
+                      >
+                        {cell?.token}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         )}
