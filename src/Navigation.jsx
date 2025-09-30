@@ -120,19 +120,19 @@ const Navigation = ({ isHidden = false, onMenuStateChange }) => {
                                     )}
                                 </div>
 
-                                {/* Guide Dropdown */}
+                                {/* Ticket Dropdown */}
                                 <div>
                                     <button
                                         className="w-full text-left text-white font-semibold text-lg px-2 py-2 uppercase tracking-wider flex items-center justify-between hover:bg-white/5 rounded transition-all"
-                                        onClick={() => toggleDropdown('guide')}
+                                        onClick={() => toggleDropdown('ticket')}
                                     >
-                                        GUIDE
-                                        <span className={`text-xs transition-transform duration-300 ${activeDropdown === 'guide' ? 'rotate-180' : ''}`}>▼</span>
+                                        Ticket Buy
+                                        <span className={`text-xs transition-transform duration-300 ${activeDropdown === 'ticket' ? 'rotate-180' : ''}`}>▼</span>
                                     </button>
-                                    {activeDropdown === 'guide' && (
+                                    {activeDropdown === 'ticket' && (
                                         <div className="mt-1 space-y-1">
                                             <Link
-                                                to="/guide/survival"
+                                                to="/ticket/survival"
                                                 className="block text-white/80 no-underline px-4 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 hover:text-blue-500"
                                                 onClick={closeMobileMenu}
                                             >
