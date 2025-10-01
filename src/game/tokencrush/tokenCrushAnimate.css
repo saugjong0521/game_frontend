@@ -1,0 +1,126 @@
+/* Token Crush Game Animations */
+
+/* 토큰이 터질 때 - 크기 커지면서 사라짐 */
+@keyframes explode {
+  0% { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+  100% { 
+    opacity: 0; 
+    transform: scale(1.2); 
+  }
+}
+
+/* 매치된 토큰이 깜빡임 */
+@keyframes blink {
+  0%, 100% { 
+    opacity: 1; 
+  }
+  50% { 
+    opacity: 0.5; 
+  }
+}
+
+/* 토큰이 위에서 떨어질 때 - 바운스 효과 */
+@keyframes fall {
+  0% { 
+    transform: translateY(-100px); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+/* 토큰이 교환될 때 - 살짝 작아졌다 돌아옴 */
+@keyframes swap {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(0.9); 
+  }
+}
+
+/* 타이틀 화면에서 펄스 효과 */
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  30% { 
+    transform: scale(1.1); 
+  }
+}
+
+/* 페이드인 효과 - 작아졌다가 커짐 */
+@keyframes fadeIn {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.8); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+
+/* 힌트 - 반짝이는 효과 */
+@keyframes hint {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+}
+
+/* 애니메이션 클래스 - CSS 변수 사용 */
+.exploding { 
+  animation: explode var(--anim-explode, 0.4s) cubic-bezier(0.4, 0.0, 1, 1) forwards; 
+}
+
+.blinking { 
+  animation: blink var(--anim-blink, 0.3s) ease-in-out 2; 
+}
+
+.falling { 
+  animation: fall var(--anim-fall, 0.6s) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.swapping { 
+  animation: swap var(--anim-swap, 0.3s) cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+}
+
+.idle-pulse { 
+  animation: pulse var(--anim-pulse, 4s) ease-in-out infinite; 
+}
+
+/* 힌트 애니메이션 */
+.hint { 
+  animation: hint var(--anim-hint, 1.5s) ease-in-out infinite;
+  position: relative;
+  z-index: 10;
+}
+
+/* 드래그 중인 토큰 */
+.dragging { 
+  transition: none !important; 
+  z-index: 50; 
+  pointer-events: none; 
+}
+
+/* 게임 보드 터치 설정 */
+.game-board { 
+  touch-action: none; 
+  -webkit-user-select: none; 
+  user-select: none; 
+}
+
+/* 페이드인 애니메이션 */
+.animate-fadeIn { 
+  animation: fadeIn var(--anim-fadeIn, 0.3s) cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+}
