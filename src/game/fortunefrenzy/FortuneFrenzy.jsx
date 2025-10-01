@@ -1,10 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useFortuneBoxStore, useFortuneSessionStore } from '@/store';
 import { useFortuneStart, useSelectBox, useFortuneCashout } from '@/hooks';
 
 const FortuneFrenzy = () => {
     const scrollContainerRef = useRef(null);
     const gameContentRef = useRef(null);
+    const isDraggingRef = useRef(false);
+    const startYRef = useRef(0);
+    const scrollTopRef = useRef(0);
 
     const {
         gameStarted,
@@ -58,8 +61,56 @@ const FortuneFrenzy = () => {
         // TODO: 클라이언트에서 추가 라운드 생성 로직
     };
 
+    // 드래그 시작
+    const handleDragStart = (e) => {
+        isDraggingRef.current = true;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        startYRef.current = clientY;
+        scrollTopRef.current = scrollContainerRef.current.scrollTop;
+        
+        
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.style.cursor = 'grabbing';
+            scrollContainerRef.current.style.userSelect = 'none';
+        }
+    };
+
+    // 드래그 중
+    const handleDragMove = (e) => {
+        if (!isDraggingRef.current) {
+            console.log('⚠️ Not dragging, skipping move');
+            return;
+        }
+        
+        e.preventDefault();
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        const deltaY = startYRef.current - clientY;
+        
+        console.log('🔄 Drag Move - ClientY:', clientY, 'Delta:', deltaY, 'Original ScrollTop:', scrollTopRef.current);
+        
+        if (scrollContainerRef.current) {
+            const newScrollTop = scrollTopRef.current + deltaY;
+            const maxScroll = scrollContainerRef.current.scrollHeight - scrollContainerRef.current.clientHeight;
+            const clampedScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
+            
+            scrollContainerRef.current.scrollTop = clampedScrollTop;
+            console.log('📜 Clamped Scroll Top:', clampedScrollTop, 'Max:', maxScroll);
+        }
+    };
+
+    // 드래그 종료
+    const handleDragEnd = (e) => {
+        console.log('🛑 Drag End:', e.type);
+        isDraggingRef.current = false;
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.style.cursor = 'grab';
+            scrollContainerRef.current.style.userSelect = 'auto';
+        }
+    };
+
     const handleBoxClick = async (roundNumber, boxIndex) => {
-        if (roundNumber !== currentRound || isGameOver || isCashedOut) return;
+        console.log('🎯 Box Click - Dragging:', isDraggingRef.current);
+        if (roundNumber !== currentRound || isGameOver || isCashedOut || isDraggingRef.current) return;
 
         try {
             const result = await selectBox(boxIndex);
@@ -113,7 +164,7 @@ const FortuneFrenzy = () => {
                 </h1>
             </div>
 
-            <div ref={gameContentRef} className="h-[70vh] px-2 sm:px-4 flex flex-col overflow-y-auto">
+            <div ref={gameContentRef} className="h-[70vh] px-2 sm:px-4 flex flex-col">
                 {!gameStarted ? (
                     <div className="flex-1 flex items-start justify-center">
                         <button
@@ -125,7 +176,7 @@ const FortuneFrenzy = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex-1 bg-gray-800/50 rounded-xl p-3 sm:p-6 backdrop-blur-sm border border-purple-500/30 flex flex-col">
+                    <div className="flex-1 bg-gray-800/50 rounded-xl p-3 sm:p-6 backdrop-blur-sm border border-purple-500/30 flex flex-col overflow-y-auto">
                         {isGameOver && (
                             <div className="mb-4 bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-center">
                                 <h2 className="text-2xl font-bold text-red-400 mb-2">💥 Game Over!</h2>
@@ -177,7 +228,15 @@ const FortuneFrenzy = () => {
                         <div
                             ref={scrollContainerRef}
                             onScroll={handleScroll}
+                            onMouseDown={handleDragStart}
+                            onMouseMove={handleDragMove}
+                            onMouseUp={handleDragEnd}
+                            onMouseLeave={handleDragEnd}
+                            onTouchStart={handleDragStart}
+                            onTouchMove={handleDragMove}
+                            onTouchEnd={handleDragEnd}
                             className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-4 custom-scrollbar"
+                            style={{ cursor: 'grab', touchAction: 'none' }}
                         >
                             {loading && (
                                 <div className="text-center py-2 text-gray-400 text-sm">
