@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useFortuneBoxStore, useFortuneSessionStore } from '@/store';
-import { useFortuneStart, useSelectBox, useFortuneCashout } from '@/hooks';
+import { useFortuneBoxStore, useFortuneSessionStore, useFortuneUserStore } from '@/store';
+import { useFortuneStart, useSelectBox, useFortuneCashout, useBringUserFortuneStats } from '@/hooks';
+
+// 상수 정의
+const DEFAULT_GAME_PRICE = 1000;
 
 const FortuneFrenzy = () => {
     const scrollContainerRef = useRef(null);
@@ -23,6 +26,8 @@ const FortuneFrenzy = () => {
 
     const { rounds, selectedBoxes, minePositions, clearRounds } = useFortuneBoxStore();
     const { sessionId, currentRound, clearSession } = useFortuneSessionStore();
+    const { balance } = useFortuneUserStore();
+    const { fetchUserStats } = useBringUserFortuneStats();
 
     const {
         selectBox,
@@ -32,6 +37,36 @@ const FortuneFrenzy = () => {
     const { cashout, loading: cashoutLoading } = useFortuneCashout();
 
     const loading = startLoading || selectLoading || cashoutLoading;
+
+    // 현재 게임에서 얻을 수 있는 금액 계산
+    const getCurrentGameWinAmount = () => {
+        if (!gameStarted || currentRound <= 1) return DEFAULT_GAME_PRICE;
+        
+        const previousRoundData = rounds.find(r => r.round === currentRound - 1);
+        const multiplier = previousRoundData?.cumulative_multiplier || 1.0;
+        
+        return DEFAULT_GAME_PRICE * multiplier;
+    };
+
+    // 유저의 총 자산 (현재 잔액 + 게임에서 얻을 금액)
+    const getTotalAssetValue = () => {
+        return balance + getCurrentGameWinAmount();
+    };
+
+    const currentGameWinAmount = getCurrentGameWinAmount();
+    const totalAssetValue = getTotalAssetValue();
+
+    // 컴포넌트 마운트 시 유저 정보 가져오기
+    useEffect(() => {
+        fetchUserStats();
+    }, []);
+
+    // 게임 종료 시 유저 정보 업데이트
+    useEffect(() => {
+        if (isGameOver || isCashedOut) {
+            fetchUserStats();
+        }
+    }, [isGameOver, isCashedOut]);
 
     useEffect(() => {
         if (gameStarted && scrollContainerRef.current) {
@@ -78,7 +113,6 @@ const FortuneFrenzy = () => {
     // 드래그 중
     const handleDragMove = (e) => {
         if (!isDraggingRef.current) {
-            console.log('⚠️ Not dragging, skipping move');
             return;
         }
         
@@ -86,21 +120,17 @@ const FortuneFrenzy = () => {
         const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
         const deltaY = startYRef.current - clientY;
         
-        console.log('🔄 Drag Move - ClientY:', clientY, 'Delta:', deltaY, 'Original ScrollTop:', scrollTopRef.current);
-        
         if (scrollContainerRef.current) {
             const newScrollTop = scrollTopRef.current + deltaY;
             const maxScroll = scrollContainerRef.current.scrollHeight - scrollContainerRef.current.clientHeight;
             const clampedScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
             
             scrollContainerRef.current.scrollTop = clampedScrollTop;
-            console.log('📜 Clamped Scroll Top:', clampedScrollTop, 'Max:', maxScroll);
         }
     };
 
     // 드래그 종료
     const handleDragEnd = (e) => {
-        console.log('🛑 Drag End:', e.type);
         isDraggingRef.current = false;
         if (scrollContainerRef.current) {
             scrollContainerRef.current.style.cursor = 'grab';
@@ -109,7 +139,6 @@ const FortuneFrenzy = () => {
     };
 
     const handleBoxClick = async (roundNumber, boxIndex) => {
-        console.log('🎯 Box Click - Dragging:', isDraggingRef.current);
         if (roundNumber !== currentRound || isGameOver || isCashedOut || isDraggingRef.current) return;
 
         try {
@@ -156,12 +185,29 @@ const FortuneFrenzy = () => {
         clearRounds();
     };
 
+    const formatBalance = (amount) => {
+        return amount.toLocaleString('ko-KR');
+    };
+
     return (
         <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col">
-            <div className="h-[10vh] flex items-center justify-center px-4">
-                <h1 className="text-2xl sm:text-4xl font-bold text-white text-center">
+            <div className="h-[10vh] flex items-center justify-between px-4">
+                <div className="text-white text-sm sm:text-base">
+                    <div className="text-gray-400 text-xs">Balance</div>
+                    <div className="font-bold">{formatBalance(totalAssetValue)}원</div>
+                </div>
+                
+                <h1 className="text-2xl sm:text-4xl font-bold text-white text-center flex-1">
                     Fortune Frenzy
                 </h1>
+                
+                {gameStarted && (
+                    <div className="text-white text-sm sm:text-base text-right">
+                        <div className="text-gray-400 text-xs">Current Value</div>
+                        <div className="font-bold text-yellow-400">{formatBalance(currentGameWinAmount)}원</div>
+                    </div>
+                )}
+                {!gameStarted && <div className="w-20 sm:w-24"></div>}
             </div>
 
             <div ref={gameContentRef} className="h-[70vh] px-2 sm:px-4 flex flex-col">
@@ -172,7 +218,7 @@ const FortuneFrenzy = () => {
                             disabled={loading}
                             className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg sm:text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                         >
-                            {loading ? 'Starting...' : 'Start Game'}
+                            {loading ? 'Starting...' : `Start Game (${formatBalance(DEFAULT_GAME_PRICE)}원)`}
                         </button>
                     </div>
                 ) : (
@@ -197,6 +243,9 @@ const FortuneFrenzy = () => {
                                 <div className="mb-4">
                                     <p className="text-yellow-400 text-3xl font-bold mb-1">{finalMultiplier.toFixed(2)}x</p>
                                     <p className="text-gray-300 text-sm">Final Round: {finalRound}</p>
+                                    <p className="text-green-400 text-xl font-bold mt-2">
+                                        +{formatBalance(DEFAULT_GAME_PRICE * finalMultiplier)}원
+                                    </p>
                                 </div>
                                 <button
                                     onClick={handleTryAgain}
@@ -218,7 +267,7 @@ const FortuneFrenzy = () => {
                             </div>
                             <button 
                                 onClick={handleCashout}
-                                disabled={cashoutLoading || isGameOver || isCashedOut}
+                                disabled={cashoutLoading || isGameOver || isCashedOut || currentRound <= 1}
                                 className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {cashoutLoading ? 'Processing...' : 'Cash Out'}

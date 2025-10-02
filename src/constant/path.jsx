@@ -10,7 +10,8 @@ const PATH = {
     STARTFORTUNE: "/minesweeper/game/start",
     SELECTFORTUNE: "/minesweeper/game/select",
     FORTUNECASHOUT: "/minesweeper/game/cashout",
-    FORTUNELEADERBOARD: "/minesweeper/stats/leaderboard"
+    FORTUNELEADERBOARD: "/minesweeper/stats/leaderboard",
+    FORTUNEUSERSTATS: "/minesweeper/game/stats"
   };
   
   export { PATH };
