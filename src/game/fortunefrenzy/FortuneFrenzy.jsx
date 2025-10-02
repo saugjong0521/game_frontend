@@ -48,9 +48,14 @@ const FortuneFrenzy = () => {
         return DEFAULT_GAME_PRICE * multiplier;
     };
 
-    // 유저의 총 자산 (현재 잔액 + 게임에서 얻을 금액)
+    // 유저의 현재 자산 보유량
     const getTotalAssetValue = () => {
-        return balance + getCurrentGameWinAmount();
+        // 게임 진행 중이고 아직 종료되지 않았을 때
+        if (gameStarted && !isGameOver && !isCashedOut) {
+            return balance - DEFAULT_GAME_PRICE + getCurrentGameWinAmount();
+        }
+        // 게임 시작 전, 캐시아웃 성공, 게임 패배 시
+        return balance;
     };
 
     const currentGameWinAmount = getCurrentGameWinAmount();
@@ -61,12 +66,12 @@ const FortuneFrenzy = () => {
         fetchUserStats();
     }, []);
 
-    // 게임 종료 시 유저 정보 업데이트
+    // 게임 패배 시에만 유저 정보 업데이트 (캐시아웃은 서버에서 이미 반영됨)
     useEffect(() => {
-        if (isGameOver || isCashedOut) {
+        if (isGameOver) {
             fetchUserStats();
         }
-    }, [isGameOver, isCashedOut]);
+    }, [isGameOver]);
 
     useEffect(() => {
         if (gameStarted && scrollContainerRef.current) {
@@ -166,6 +171,8 @@ const FortuneFrenzy = () => {
                 setIsCashedOut(true);
                 setFinalRound(result.finalRound);
                 setFinalMultiplier(multiplier);
+                // 캐시아웃 성공 시 balance 업데이트
+                await fetchUserStats();
             } else {
                 alert('캐시아웃 실패');
             }
