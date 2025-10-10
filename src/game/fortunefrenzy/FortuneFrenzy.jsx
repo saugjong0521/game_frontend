@@ -3,7 +3,7 @@ import { useFortuneBoxStore, useFortuneSessionStore, useFortuneUserStore } from 
 import { useFortuneStart, useSelectBox, useFortuneCashout, useBringUserFortuneStats, useCheckFortuneSession } from '@/hooks';
 import { FortuneFrenzyEffect } from '@/game/fortunefrenzy';
 
-const DEFAULT_GAME_PRICE = 1000;
+const DEFAULT_GAME_PRICE = 100;
 
 const FortuneFrenzy = () => {
     const scrollContainerRef = useRef(null);
@@ -108,15 +108,6 @@ const FortuneFrenzy = () => {
         }
     }, [isGameOver, isCashedOut]);
 
-    // 새 라운드가 추가될 때마다 하단으로 스크롤
-    useEffect(() => {
-        if (gameStarted && scrollContainerRef.current && rounds.length > 0) {
-            setTimeout(() => {
-                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-            }, 50);
-        }
-    }, [rounds.length]);
-
     const handleDragStart = (e) => {
         isDraggingRef.current = true;
         const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
@@ -212,10 +203,10 @@ const FortuneFrenzy = () => {
     };
 
     const handleStartGame = async () => {
-        const finalBetAmount = betAmount === '' ? 1000 : betAmount;
-        if (finalBetAmount < 1000) {
+        const finalBetAmount = betAmount === '' ? 100 : betAmount;
+        if (finalBetAmount < 100) {
             alert('최소 배팅 금액은 1,000원입니다.');
-            setBetAmount(1000);
+            setBetAmount(100);
             return;
         }
         if (finalBetAmount > balance) {
@@ -276,8 +267,8 @@ const FortuneFrenzy = () => {
                                     }
                                 }}
                                 onBlur={(e) => {
-                                    if (e.target.value === '' || parseInt(e.target.value) < 1000) {
-                                        setBetAmount(1000);
+                                    if (e.target.value === '' || parseInt(e.target.value) < 100) {
+                                        setBetAmount(100);
                                     }
                                 }}
                                 disabled={loading}
@@ -312,12 +303,12 @@ const FortuneFrenzy = () => {
                             </div>
 
                             <p className="mt-2 text-gray-400 text-xs text-center">
-                                최소 배팅: {formatBalance(1000)}원 | 최대 배팅: {formatBalance(1000000)}원
+                                최소 배팅: {formatBalance(100)}원 | 최대 배팅: {formatBalance(1000000)}원
                             </p>
                         </div>
                         <button
                             onClick={handleStartGame}
-                            disabled={loading || (betAmount !== '' && betAmount < 1000) || (betAmount !== '' && betAmount > balance)}
+                            disabled={loading || (betAmount !== '' && betAmount < 100) || (betAmount !== '' && betAmount > balance)}
                             className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg sm:text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                         >
                             {loading ? 'Starting...' : `Start Game`}
