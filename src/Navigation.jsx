@@ -49,7 +49,7 @@ const Navigation = ({ isHidden = false, onMenuStateChange }) => {
                         className="text-xl md:text-2xl font-black text-white no-underline bg-gradient-to-r from-blue-500 via-purple-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_200%] animate-pulse tracking-wide"
                         onClick={closeMobileMenu}
                     >
-                        OVER101
+                        HOME
                     </Link>
 
                     {/* Hamburger Button */}
