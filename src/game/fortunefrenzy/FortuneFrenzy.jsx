@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useFortuneBoxStore, useFortuneSessionStore, useFortuneUserStore } from '@/store';
 import { useFortuneStart, useSelectBox, useFortuneCashout, useBringUserFortuneStats } from '@/hooks';
 
-// 상수 정의
 const DEFAULT_GAME_PRICE = 1000;
 
 const FortuneFrenzy = () => {
@@ -23,6 +22,8 @@ const FortuneFrenzy = () => {
     const [isCashedOut, setIsCashedOut] = React.useState(false);
     const [finalRound, setFinalRound] = React.useState(0);
     const [finalMultiplier, setFinalMultiplier] = React.useState(0);
+    const [betAmount, setBetAmount] = React.useState(DEFAULT_GAME_PRICE);
+    const [currentBetAmount, setCurrentBetAmount] = React.useState(DEFAULT_GAME_PRICE);
 
     const { rounds, selectedBoxes, minePositions, clearRounds } = useFortuneBoxStore();
     const { sessionId, currentRound, clearSession } = useFortuneSessionStore();
@@ -38,35 +39,29 @@ const FortuneFrenzy = () => {
 
     const loading = startLoading || selectLoading || cashoutLoading;
 
-    // 현재 게임에서 얻을 수 있는 금액 계산
     const getCurrentGameWinAmount = () => {
-        if (!gameStarted || currentRound <= 1) return DEFAULT_GAME_PRICE;
+        if (!gameStarted || currentRound <= 1) return currentBetAmount;
         
         const previousRoundData = rounds.find(r => r.round === currentRound - 1);
         const multiplier = previousRoundData?.cumulative_multiplier || 1.0;
         
-        return DEFAULT_GAME_PRICE * multiplier;
+        return currentBetAmount * multiplier;
     };
 
-    // 유저의 현재 자산 보유량
     const getTotalAssetValue = () => {
-        // 게임 진행 중이고 아직 종료되지 않았을 때
         if (gameStarted && !isGameOver && !isCashedOut) {
-            return balance - DEFAULT_GAME_PRICE + getCurrentGameWinAmount();
+            return balance - currentBetAmount + getCurrentGameWinAmount();
         }
-        // 게임 시작 전, 캐시아웃 성공, 게임 패배 시
         return balance;
     };
 
     const currentGameWinAmount = getCurrentGameWinAmount();
     const totalAssetValue = getTotalAssetValue();
 
-    // 컴포넌트 마운트 시 유저 정보 가져오기
     useEffect(() => {
         fetchUserStats();
     }, []);
 
-    // 게임 패배 시에만 유저 정보 업데이트 (캐시아웃은 서버에서 이미 반영됨)
     useEffect(() => {
         if (isGameOver) {
             fetchUserStats();
@@ -87,27 +82,20 @@ const FortuneFrenzy = () => {
         }
     }, [isGameOver, isCashedOut]);
 
-    const handleScroll = () => {
-        if (!scrollContainerRef.current || loading) return;
-
-        const { scrollTop } = scrollContainerRef.current;
-
-        if (scrollTop < 100) {
-            loadMoreRounds();
+    // 새 라운드가 추가될 때마다 하단으로 스크롤
+    useEffect(() => {
+        if (gameStarted && scrollContainerRef.current && rounds.length > 0) {
+            setTimeout(() => {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }, 50);
         }
-    };
+    }, [rounds.length]);
 
-    const loadMoreRounds = () => {
-        // TODO: 클라이언트에서 추가 라운드 생성 로직
-    };
-
-    // 드래그 시작
     const handleDragStart = (e) => {
         isDraggingRef.current = true;
         const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
         startYRef.current = clientY;
         scrollTopRef.current = scrollContainerRef.current.scrollTop;
-        
         
         if (scrollContainerRef.current) {
             scrollContainerRef.current.style.cursor = 'grabbing';
@@ -115,11 +103,8 @@ const FortuneFrenzy = () => {
         }
     };
 
-    // 드래그 중
     const handleDragMove = (e) => {
-        if (!isDraggingRef.current) {
-            return;
-        }
+        if (!isDraggingRef.current) return;
         
         e.preventDefault();
         const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
@@ -134,7 +119,6 @@ const FortuneFrenzy = () => {
         }
     };
 
-    // 드래그 종료
     const handleDragEnd = (e) => {
         isDraggingRef.current = false;
         if (scrollContainerRef.current) {
@@ -171,7 +155,6 @@ const FortuneFrenzy = () => {
                 setIsCashedOut(true);
                 setFinalRound(result.finalRound);
                 setFinalMultiplier(multiplier);
-                // 캐시아웃 성공 시 balance 업데이트
                 await fetchUserStats();
             } else {
                 alert('캐시아웃 실패');
@@ -188,8 +171,22 @@ const FortuneFrenzy = () => {
         setIsCashedOut(false);
         setFinalRound(0);
         setFinalMultiplier(0);
+        setBetAmount(DEFAULT_GAME_PRICE);
         clearSession();
         clearRounds();
+    };
+
+    const handleStartGame = async () => {
+        if (betAmount < 1000) {
+            alert('최소 배팅 금액은 1,000원입니다.');
+            return;
+        }
+        if (betAmount > balance) {
+            alert('보유 금액이 부족합니다.');
+            return;
+        }
+        setCurrentBetAmount(betAmount);
+        await startGame(betAmount);
     };
 
     const formatBalance = (amount) => {
@@ -219,13 +216,57 @@ const FortuneFrenzy = () => {
 
             <div ref={gameContentRef} className="h-[70vh] px-2 sm:px-4 flex flex-col">
                 {!gameStarted ? (
-                    <div className="flex-1 flex items-start justify-center">
+                    <div className="flex-1 flex flex-col items-center justify-start gap-4 pt-8">
+                        <div className="w-full max-w-md px-4">
+                            <label className="block text-white text-sm font-semibold mb-2">
+                                배팅 금액
+                            </label>
+                            <input
+                                type="number"
+                                min="1000"
+                                step="1000"
+                                value={betAmount}
+                                onChange={(e) => setBetAmount(Math.max(1000, parseInt(e.target.value) || 1000))}
+                                disabled={loading}
+                                className="w-full px-4 py-3 bg-gray-800 text-white text-lg rounded-lg border-2 border-purple-500/50 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+                                placeholder="1000"
+                            />
+                            <div className="mt-2 flex gap-2">
+                                <button
+                                    onClick={() => setBetAmount(1000)}
+                                    className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                                >
+                                    1,000
+                                </button>
+                                <button
+                                    onClick={() => setBetAmount(5000)}
+                                    className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                                >
+                                    5,000
+                                </button>
+                                <button
+                                    onClick={() => setBetAmount(10000)}
+                                    className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                                >
+                                    10,000
+                                </button>
+                                <button
+                                    onClick={() => setBetAmount(50000)}
+                                    className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                                >
+                                    50,000
+                                </button>
+                            </div>
+                            <p className="mt-2 text-gray-400 text-xs text-center">
+                                최소 배팅: {formatBalance(1000)}원 | 보유 금액: {formatBalance(balance)}원
+                            </p>
+                        </div>
                         <button
-                            onClick={startGame}
-                            disabled={loading}
+                            onClick={handleStartGame}
+                            disabled={loading || betAmount < 1000 || betAmount > balance}
                             className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg sm:text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                         >
-                            {loading ? 'Starting...' : `Start Game (${formatBalance(DEFAULT_GAME_PRICE)}원)`}
+                            {loading ? 'Starting...' : `Start Game`}
                         </button>
                     </div>
                 ) : (
@@ -251,7 +292,7 @@ const FortuneFrenzy = () => {
                                     <p className="text-yellow-400 text-3xl font-bold mb-1">{finalMultiplier.toFixed(2)}x</p>
                                     <p className="text-gray-300 text-sm">Final Round: {finalRound}</p>
                                     <p className="text-green-400 text-xl font-bold mt-2">
-                                        +{formatBalance(DEFAULT_GAME_PRICE * finalMultiplier)}원
+                                        +{formatBalance(currentBetAmount * finalMultiplier)}원
                                     </p>
                                 </div>
                                 <button
@@ -283,7 +324,6 @@ const FortuneFrenzy = () => {
 
                         <div
                             ref={scrollContainerRef}
-                            onScroll={handleScroll}
                             onMouseDown={handleDragStart}
                             onMouseMove={handleDragMove}
                             onMouseUp={handleDragEnd}
@@ -294,12 +334,6 @@ const FortuneFrenzy = () => {
                             className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-4 custom-scrollbar"
                             style={{ cursor: 'grab', touchAction: 'none' }}
                         >
-                            {loading && (
-                                <div className="text-center py-2 text-gray-400 text-sm">
-                                    Loading...
-                                </div>
-                            )}
-
                             {rounds.map((roundData) => {
                                 const isCurrentRound = roundData.round === currentRound;
                                 const isPastRound = roundData.round < currentRound;

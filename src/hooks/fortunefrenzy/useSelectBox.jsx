@@ -41,9 +41,9 @@ const useSelectBox = () => {
         // 성공: 다음 라운드로 진행
         setCurrentRound(response.data.round);
         
-        // 새로운 10라운드 정보 추가
-        if (response.data.next_rounds_info) {
-          addRounds(response.data.next_rounds_info.reverse());
+        // stack_round_info가 있으면 한 라운드만 추가
+        if (response.data.stack_round_info) {
+          addRounds([response.data.stack_round_info]);
         }
         
         return {

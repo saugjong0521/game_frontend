@@ -12,7 +12,7 @@ const useFortuneStart = () => {
     const { sessionId, setSessionId, setCurrentRound } = useFortuneSessionStore();
     const { getAuthHeader, isAuthenticated } = useTokenStore();
 
-    const startGame = async () => {
+    const startGame = async (betAmount) => {
         setLoading(true);
         try {
             const deviceHeaders = await createApiHeaders();
@@ -24,7 +24,9 @@ const useFortuneStart = () => {
                 'Content-Type': 'application/json'
             };
 
-            const response = await API.post(PATH.STARTFORTUNE, {}, { headers });
+            const response = await API.post(PATH.STARTFORTUNE, {
+                value: betAmount
+            }, { headers });
 
             // session store에 저장
             setSessionId(response.data.session_id);
