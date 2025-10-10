@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useFortuneBoxStore, useFortuneSessionStore, useFortuneUserStore } from '@/store';
-import { useFortuneStart, useSelectBox, useFortuneCashout, useBringUserFortuneStats } from '@/hooks';
+import { useFortuneStart, useSelectBox, useFortuneCashout, useBringUserFortuneStats, useCheckFortuneSession } from '@/hooks';
 import { FortuneFrenzyEffect } from '@/game/fortunefrenzy';
 
 const DEFAULT_GAME_PRICE = 1000;
@@ -41,6 +41,18 @@ const FortuneFrenzy = () => {
     const { cashout, loading: cashoutLoading } = useFortuneCashout();
 
     const loading = startLoading || selectLoading || cashoutLoading;
+    const { checkSession } = useCheckFortuneSession();
+
+    useEffect(() => {
+        (async () => {
+            const activeSession = await checkSession();
+            if (activeSession) {
+                // 세션이 존재하면 바로 게임 시작 상태로 전환
+                setGameStarted(true);
+                setCurrentBetAmount(activeSession.betting_amount);
+            }
+        })();
+    }, []);
 
     // 이펙트 시스템 초기화
     useEffect(() => {
@@ -382,10 +394,10 @@ const FortuneFrenzy = () => {
                                     <div
                                         key={roundData.round}
                                         className={`flex items-center gap-1 sm:gap-4 bg-gray-900/50 p-2 sm:p-4 rounded-lg border transition-colors ${isCurrentRound
-                                                ? 'border-yellow-500 shadow-lg shadow-yellow-500/20'
-                                                : isPastRound
-                                                    ? 'border-green-700'
-                                                    : 'border-gray-700'
+                                            ? 'border-yellow-500 shadow-lg shadow-yellow-500/20'
+                                            : isPastRound
+                                                ? 'border-green-700'
+                                                : 'border-gray-700'
                                             }`}
                                     >
                                         <div className={`w-12 sm:w-20 text-right flex-shrink-0 ${isPastRound ? 'opacity-60' : ''}`}>
@@ -416,20 +428,20 @@ const FortuneFrenzy = () => {
                                                                 maxWidth: '70px'
                                                             }}
                                                             className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-2xl ${isPastRound
-                                                                    ? isMine
-                                                                        ? 'bg-red-600 border-red-800'
-                                                                        : isSelected
-                                                                            ? 'bg-green-600 border-green-800'
-                                                                            : 'bg-gray-700 border-gray-600 shadow-lg'
-                                                                    : isCurrentRound
-                                                                        ? (isGameOver || isCashedOut)
-                                                                            ? isMine
-                                                                                ? 'bg-red-600 border-red-800'
-                                                                                : isSelected
-                                                                                    ? 'bg-green-600 border-green-800'
-                                                                                    : 'bg-gray-700 border-gray-600 shadow-lg'
-                                                                            : 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:border-purple-500 hover:from-purple-600/20 hover:to-gray-700 active:scale-95 cursor-pointer shadow-lg'
-                                                                        : 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed shadow-lg'
+                                                                ? isMine
+                                                                    ? 'bg-red-600 border-red-800'
+                                                                    : isSelected
+                                                                        ? 'bg-green-600 border-green-800'
+                                                                        : 'bg-gray-700 border-gray-600 shadow-lg'
+                                                                : isCurrentRound
+                                                                    ? (isGameOver || isCashedOut)
+                                                                        ? isMine
+                                                                            ? 'bg-red-600 border-red-800'
+                                                                            : isSelected
+                                                                                ? 'bg-green-600 border-green-800'
+                                                                                : 'bg-gray-700 border-gray-600 shadow-lg'
+                                                                        : 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:border-purple-500 hover:from-purple-600/20 hover:to-gray-700 active:scale-95 cursor-pointer shadow-lg'
+                                                                    : 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed shadow-lg'
                                                                 }`}
                                                         >
                                                             {isPastRound

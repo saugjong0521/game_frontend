@@ -13,7 +13,8 @@ import {
     useSelectBox,
     useFortuneCashout,
     useBringFortuneLeaderBoard,
-    useBringUserFortuneStats
+    useBringUserFortuneStats,
+    useCheckFortuneSession
 } from "./fortunefrenzy";
 
 
@@ -31,5 +32,6 @@ export {
     useSelectBox,
     useFortuneCashout,
     useBringFortuneLeaderBoard,
-    useBringUserFortuneStats
+    useBringUserFortuneStats,
+    useCheckFortuneSession
 }
