@@ -260,8 +260,9 @@ const FortuneFrenzy = () => {
                             </label>
                             <input
                                 type="number"
-                                min="1000"
-                                step="1000"
+                                min="100"
+                                max="1000000"
+                                step="100"
                                 value={betAmount}
                                 onChange={(e) => {
                                     const value = e.target.value;
@@ -281,36 +282,37 @@ const FortuneFrenzy = () => {
                                 }}
                                 disabled={loading}
                                 className="w-full px-4 py-3 bg-gray-800 text-white text-lg rounded-lg border-2 border-purple-500/50 focus:border-purple-500 focus:outline-none disabled:opacity-50"
-                                placeholder="1000"
+                                placeholder="100"
                             />
                             <div className="mt-2 flex gap-2">
                                 <button
-                                    onClick={() => setBetAmount(1000)}
+                                    onClick={() => setBetAmount((prev) => Math.min(prev + 100, 1000000))}
                                     className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
                                 >
-                                    1,000
+                                    +100
                                 </button>
                                 <button
-                                    onClick={() => setBetAmount(5000)}
+                                    onClick={() => setBetAmount((prev) => Math.min(prev + 1000, 1000000))}
                                     className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
                                 >
-                                    5,000
+                                    +1,000
                                 </button>
                                 <button
-                                    onClick={() => setBetAmount(10000)}
+                                    onClick={() => setBetAmount((prev) => Math.min(prev + 10000, 1000000))}
                                     className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
                                 >
-                                    10,000
+                                    +10,000
                                 </button>
                                 <button
-                                    onClick={() => setBetAmount(50000)}
+                                    onClick={() => setBetAmount((prev) => Math.min(prev + 100000, 1000000))}
                                     className="flex-1 px-3 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600 transition-colors"
                                 >
-                                    50,000
+                                    +100,000
                                 </button>
                             </div>
+
                             <p className="mt-2 text-gray-400 text-xs text-center">
-                                최소 배팅: {formatBalance(1000)}원 | 보유 금액: {formatBalance(balance)}원
+                                최소 배팅: {formatBalance(1000)}원 | 최대 배팅: {formatBalance(1000000)}원
                             </p>
                         </div>
                         <button
@@ -318,7 +320,7 @@ const FortuneFrenzy = () => {
                             disabled={loading || (betAmount !== '' && betAmount < 1000) || (betAmount !== '' && betAmount > balance)}
                             className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg sm:text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                         >
-                            {loading ? 'Starting...' : `Start Game (${formatBalance(betAmount === '' ? 1000 : betAmount)}원)`}
+                            {loading ? 'Starting...' : `Start Game`}
                         </button>
                     </div>
                 ) : (
