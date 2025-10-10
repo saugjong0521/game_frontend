@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 const useTokenStore = create(
   persist(
@@ -79,7 +79,8 @@ const useTokenStore = create(
       },
     }),
     {
-      name: 'token-storage', // localStorage 키 이름
+      name: 'token-storage',
+      storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         token: state.token,
         tokenType: state.tokenType,
