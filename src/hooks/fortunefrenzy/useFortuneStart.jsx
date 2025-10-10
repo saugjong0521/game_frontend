@@ -25,7 +25,7 @@ const useFortuneStart = () => {
             };
 
             const response = await API.post(PATH.STARTFORTUNE, {
-                value: betAmount
+                betting_amount: betAmount
             }, { headers });
 
             // session store에 저장

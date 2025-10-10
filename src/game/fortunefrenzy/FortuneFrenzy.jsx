@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useFortuneBoxStore, useFortuneSessionStore, useFortuneUserStore } from '@/store';
 import { useFortuneStart, useSelectBox, useFortuneCashout, useBringUserFortuneStats } from '@/hooks';
+import { FortuneFrenzyEffect } from '@/game/fortunefrenzy';
 
 const DEFAULT_GAME_PRICE = 1000;
 
@@ -10,6 +11,7 @@ const FortuneFrenzy = () => {
     const isDraggingRef = useRef(false);
     const startYRef = useRef(0);
     const scrollTopRef = useRef(0);
+    const effectRef = useRef(null);
 
     const {
         gameStarted,
@@ -24,6 +26,7 @@ const FortuneFrenzy = () => {
     const [finalMultiplier, setFinalMultiplier] = React.useState(0);
     const [betAmount, setBetAmount] = React.useState(DEFAULT_GAME_PRICE);
     const [currentBetAmount, setCurrentBetAmount] = React.useState(DEFAULT_GAME_PRICE);
+    const [shakeTransform, setShakeTransform] = React.useState('translate(0, 0)');
 
     const { rounds, selectedBoxes, minePositions, clearRounds } = useFortuneBoxStore();
     const { sessionId, currentRound, clearSession } = useFortuneSessionStore();
@@ -39,12 +42,23 @@ const FortuneFrenzy = () => {
 
     const loading = startLoading || selectLoading || cashoutLoading;
 
+    // 이펙트 시스템 초기화
+    useEffect(() => {
+        effectRef.current = new FortuneFrenzyEffect(setShakeTransform);
+
+        return () => {
+            if (effectRef.current) {
+                effectRef.current.cleanup();
+            }
+        };
+    }, []);
+
     const getCurrentGameWinAmount = () => {
         if (!gameStarted || currentRound <= 1) return currentBetAmount;
-        
+
         const previousRoundData = rounds.find(r => r.round === currentRound - 1);
         const multiplier = previousRoundData?.cumulative_multiplier || 1.0;
-        
+
         return currentBetAmount * multiplier;
     };
 
@@ -96,7 +110,7 @@ const FortuneFrenzy = () => {
         const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
         startYRef.current = clientY;
         scrollTopRef.current = scrollContainerRef.current.scrollTop;
-        
+
         if (scrollContainerRef.current) {
             scrollContainerRef.current.style.cursor = 'grabbing';
             scrollContainerRef.current.style.userSelect = 'none';
@@ -105,16 +119,16 @@ const FortuneFrenzy = () => {
 
     const handleDragMove = (e) => {
         if (!isDraggingRef.current) return;
-        
+
         e.preventDefault();
         const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
         const deltaY = startYRef.current - clientY;
-        
+
         if (scrollContainerRef.current) {
             const newScrollTop = scrollTopRef.current + deltaY;
             const maxScroll = scrollContainerRef.current.scrollHeight - scrollContainerRef.current.clientHeight;
             const clampedScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
-            
+
             scrollContainerRef.current.scrollTop = clampedScrollTop;
         }
     };
@@ -133,6 +147,10 @@ const FortuneFrenzy = () => {
         try {
             const result = await selectBox(boxIndex);
             if (!result.success) {
+                // 지뢰를 밟았을 때 화면 흔들림 효과
+                if (effectRef.current) {
+                    effectRef.current.startScreenShake(30, 600);
+                }
                 setIsGameOver(true);
             }
         } catch (error) {
@@ -142,14 +160,14 @@ const FortuneFrenzy = () => {
 
     const handleCashout = async () => {
         if (isGameOver || isCashedOut) return;
-        
+
         const confirmed = window.confirm('캐시아웃 하시겠습니까?');
         if (!confirmed) return;
 
         try {
             const previousRoundData = rounds.find(r => r.round === currentRound - 1);
             const multiplier = previousRoundData?.cumulative_multiplier || 1.0;
-            
+
             const result = await cashout();
             if (result.success) {
                 setIsCashedOut(true);
@@ -174,19 +192,26 @@ const FortuneFrenzy = () => {
         setBetAmount(DEFAULT_GAME_PRICE);
         clearSession();
         clearRounds();
+
+        // 이펙트 초기화
+        if (effectRef.current) {
+            effectRef.current.reset();
+        }
     };
 
     const handleStartGame = async () => {
-        if (betAmount < 1000) {
+        const finalBetAmount = betAmount === '' ? 1000 : betAmount;
+        if (finalBetAmount < 1000) {
             alert('최소 배팅 금액은 1,000원입니다.');
+            setBetAmount(1000);
             return;
         }
-        if (betAmount > balance) {
+        if (finalBetAmount > balance) {
             alert('보유 금액이 부족합니다.');
             return;
         }
-        setCurrentBetAmount(betAmount);
-        await startGame(betAmount);
+        setCurrentBetAmount(finalBetAmount);
+        await startGame(finalBetAmount);
     };
 
     const formatBalance = (amount) => {
@@ -194,17 +219,17 @@ const FortuneFrenzy = () => {
     };
 
     return (
-        <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col">
+        <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col" style={{ transform: shakeTransform, transition: effectRef.current?.isScreenShakeActive() ? 'none' : 'transform 0.1s' }}>
             <div className="h-[10vh] flex items-center justify-between px-4">
                 <div className="text-white text-sm sm:text-base">
                     <div className="text-gray-400 text-xs">Balance</div>
                     <div className="font-bold">{formatBalance(totalAssetValue)}원</div>
                 </div>
-                
+
                 <h1 className="text-2xl sm:text-4xl font-bold text-white text-center flex-1">
                     Fortune Frenzy
                 </h1>
-                
+
                 {gameStarted && (
                     <div className="text-white text-sm sm:text-base text-right">
                         <div className="text-gray-400 text-xs">Current Value</div>
@@ -226,7 +251,22 @@ const FortuneFrenzy = () => {
                                 min="1000"
                                 step="1000"
                                 value={betAmount}
-                                onChange={(e) => setBetAmount(Math.max(1000, parseInt(e.target.value) || 1000))}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '') {
+                                        setBetAmount('');
+                                    } else {
+                                        const numValue = parseInt(value);
+                                        if (!isNaN(numValue)) {
+                                            setBetAmount(numValue);
+                                        }
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    if (e.target.value === '' || parseInt(e.target.value) < 1000) {
+                                        setBetAmount(1000);
+                                    }
+                                }}
                                 disabled={loading}
                                 className="w-full px-4 py-3 bg-gray-800 text-white text-lg rounded-lg border-2 border-purple-500/50 focus:border-purple-500 focus:outline-none disabled:opacity-50"
                                 placeholder="1000"
@@ -263,10 +303,10 @@ const FortuneFrenzy = () => {
                         </div>
                         <button
                             onClick={handleStartGame}
-                            disabled={loading || betAmount < 1000 || betAmount > balance}
+                            disabled={loading || (betAmount !== '' && betAmount < 1000) || (betAmount !== '' && betAmount > balance)}
                             className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg sm:text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                         >
-                            {loading ? 'Starting...' : `Start Game`}
+                            {loading ? 'Starting...' : `Start Game (${formatBalance(betAmount === '' ? 1000 : betAmount)}원)`}
                         </button>
                     </div>
                 ) : (
@@ -303,7 +343,7 @@ const FortuneFrenzy = () => {
                                 </button>
                             </div>
                         )}
-                        
+
                         <div className="flex-shrink-0 mb-3 sm:mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
                             <div className="text-white text-xs sm:text-sm">
                                 <span className="text-gray-400">Session:</span>
@@ -313,7 +353,7 @@ const FortuneFrenzy = () => {
                                 <span className="text-gray-400">Round:</span>
                                 <span className="ml-1 sm:ml-2 font-bold">{currentRound}</span>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleCashout}
                                 disabled={cashoutLoading || isGameOver || isCashedOut || currentRound <= 1}
                                 className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -341,13 +381,12 @@ const FortuneFrenzy = () => {
                                 return (
                                     <div
                                         key={roundData.round}
-                                        className={`flex items-center gap-1 sm:gap-4 bg-gray-900/50 p-2 sm:p-4 rounded-lg border transition-colors ${
-                                            isCurrentRound
+                                        className={`flex items-center gap-1 sm:gap-4 bg-gray-900/50 p-2 sm:p-4 rounded-lg border transition-colors ${isCurrentRound
                                                 ? 'border-yellow-500 shadow-lg shadow-yellow-500/20'
                                                 : isPastRound
-                                                ? 'border-green-700'
-                                                : 'border-gray-700'
-                                        }`}
+                                                    ? 'border-green-700'
+                                                    : 'border-gray-700'
+                                            }`}
                                     >
                                         <div className={`w-12 sm:w-20 text-right flex-shrink-0 ${isPastRound ? 'opacity-60' : ''}`}>
                                             <div className="text-yellow-400 font-bold text-sm sm:text-lg">
@@ -362,60 +401,59 @@ const FortuneFrenzy = () => {
                                             <div className="flex flex-wrap justify-center gap-1 sm:gap-2" style={{
                                                 maxWidth: roundData.box_count <= 4 ? '100%' : '75%'
                                             }}>
-                                            {Array.from({ length: roundData.box_count }).map((_, i) => {
-                                                const isSelected = selectedBoxes[roundData.round] === i;
-                                                const isMine = minePositions[roundData.round] === i;
+                                                {Array.from({ length: roundData.box_count }).map((_, i) => {
+                                                    const isSelected = selectedBoxes[roundData.round] === i;
+                                                    const isMine = minePositions[roundData.round] === i;
 
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => handleBoxClick(roundData.round, i)}
-                                                        disabled={!isCurrentRound || loading || isGameOver || isCashedOut}
-                                                        style={{
-                                                            width: roundData.box_count <= 4 ? 'calc(25% - 4px)' : 'calc(23% - 4px)',
-                                                            minWidth: '40px',
-                                                            maxWidth: '70px'
-                                                        }}
-                                                        className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-2xl ${
-                                                            isPastRound
-                                                                ? isMine
-                                                                    ? 'bg-red-600 border-red-800'
-                                                                    : isSelected
-                                                                    ? 'bg-green-600 border-green-800'
-                                                                    : 'bg-gray-700 border-gray-600 shadow-lg'
-                                                                : isCurrentRound
-                                                                ? (isGameOver || isCashedOut)
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => handleBoxClick(roundData.round, i)}
+                                                            disabled={!isCurrentRound || loading || isGameOver || isCashedOut}
+                                                            style={{
+                                                                width: roundData.box_count <= 4 ? 'calc(25% - 4px)' : 'calc(23% - 4px)',
+                                                                minWidth: '40px',
+                                                                maxWidth: '70px'
+                                                            }}
+                                                            className={`aspect-square rounded border sm:border-2 transition-all flex items-center justify-center text-white font-bold text-sm sm:text-lg md:text-2xl ${isPastRound
                                                                     ? isMine
                                                                         ? 'bg-red-600 border-red-800'
                                                                         : isSelected
-                                                                        ? 'bg-green-600 border-green-800'
-                                                                        : 'bg-gray-700 border-gray-600 shadow-lg'
-                                                                    : 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:border-purple-500 hover:from-purple-600/20 hover:to-gray-700 active:scale-95 cursor-pointer shadow-lg'
-                                                                : 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed shadow-lg'
-                                                        }`}
-                                                    >
-                                                        {isPastRound
-                                                            ? isMine
-                                                                ? '💣'
-                                                                : isSelected
-                                                                ? '✓'
-                                                                : '?'
-                                                            : isCurrentRound && isGameOver
-                                                            ? isMine
-                                                                ? '💣'
-                                                                : isSelected
-                                                                ? '✓'
-                                                                : '?'
-                                                            : isCurrentRound && isCashedOut
-                                                            ? isMine
-                                                                ? '💣'
-                                                                : isSelected
-                                                                ? '✓'
-                                                                : '?'
-                                                            : '?'}
-                                                    </button>
-                                                );
-                                            })}
+                                                                            ? 'bg-green-600 border-green-800'
+                                                                            : 'bg-gray-700 border-gray-600 shadow-lg'
+                                                                    : isCurrentRound
+                                                                        ? (isGameOver || isCashedOut)
+                                                                            ? isMine
+                                                                                ? 'bg-red-600 border-red-800'
+                                                                                : isSelected
+                                                                                    ? 'bg-green-600 border-green-800'
+                                                                                    : 'bg-gray-700 border-gray-600 shadow-lg'
+                                                                            : 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600 hover:border-purple-500 hover:from-purple-600/20 hover:to-gray-700 active:scale-95 cursor-pointer shadow-lg'
+                                                                        : 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed shadow-lg'
+                                                                }`}
+                                                        >
+                                                            {isPastRound
+                                                                ? isMine
+                                                                    ? '💣'
+                                                                    : isSelected
+                                                                        ? '✓'
+                                                                        : '?'
+                                                                : isCurrentRound && isGameOver
+                                                                    ? isMine
+                                                                        ? '💣'
+                                                                        : isSelected
+                                                                            ? '✓'
+                                                                            : '?'
+                                                                    : isCurrentRound && isCashedOut
+                                                                        ? isMine
+                                                                            ? '💣'
+                                                                            : isSelected
+                                                                                ? '✓'
+                                                                                : '?'
+                                                                        : '?'}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>
