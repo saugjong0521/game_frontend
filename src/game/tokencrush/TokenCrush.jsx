@@ -38,7 +38,6 @@ const TokenCrush = () => {
         if (isAnimating || isGameOver || !gameStarted || timeLeft <= 0 || !currentBoard.length) {
             return;
         }
-
         const hint = TokenCrushEngine.findHint(currentBoard);
         if (hint) {
             setHintCells(hint);
@@ -48,11 +47,9 @@ const TokenCrush = () => {
     const resetHintTimer = () => {
         lastMoveTimeRef.current = Date.now();
         setHintCells([]);
-
         if (hintTimerRef.current) {
             clearTimeout(hintTimerRef.current);
         }
-
         if (!isAnimating && !isGameOver && gameStarted && timeLeft > 0) {
             hintTimerRef.current = setTimeout(() => {
                 showHint();
@@ -69,7 +66,6 @@ const TokenCrush = () => {
             }
             setHintCells([]);
         }
-
         return () => {
             if (hintTimerRef.current) {
                 clearTimeout(hintTimerRef.current);
@@ -78,9 +74,7 @@ const TokenCrush = () => {
     }, [gameStarted, isAnimating, isGameOver]);
 
     const processMatches = async (currentBoard, currentCombo = 0, swappedCell = null) => {
-        if (isGameOver) {
-            return currentBoard;
-        }
+        if (isGameOver) return currentBoard;
 
         setIsAnimating(true);
 
@@ -117,7 +111,7 @@ const TokenCrush = () => {
             });
         }
 
-        const { finalScore, allCells, comboMultiplier } = TokenCrushEngine.calculateScore(matches, newCombo);
+        const { finalScore, allCells } = TokenCrushEngine.calculateScore(matches, newCombo);
 
         if (newCombo >= TokenCrushSetting.combo.startIndex) {
             setShowCombo(true);
@@ -137,25 +131,22 @@ const TokenCrush = () => {
             if ((match.type === 'LINE5' || match.type === 'TL' || match.type === 'FOUR')) {
                 let specialBlockRow, specialBlockCol;
                 
-                // 사용자가 움직인 블록이 이 매치에 포함되어 있으면 그 위치에 생성
                 if (swappedCell && match.cells.some(c => c.row === swappedCell.row && c.col === swappedCell.col)) {
                     specialBlockRow = swappedCell.row;
                     specialBlockCol = swappedCell.col;
                 } else if (match.centerCell) {
-                    // 움직인 블록이 없거나 매치에 포함 안 되면 중앙에 생성
                     specialBlockRow = match.centerCell.row;
                     specialBlockCol = match.centerCell.col;
                 }
 
                 const specialBlockInfo = TokenCrushEngine.createSpecialBlock(match.type, match.direction);
                 
-                if (specialBlockInfo && newBoard[specialBlockRow][specialBlockCol]) {
+                if (specialBlockInfo && newBoard[specialBlockRow]?.[specialBlockCol]) {
                     newBoard[specialBlockRow][specialBlockCol] = {
-                        token: null, // 특수 블록은 토큰이 없음
+                        token: null,
                         special: specialBlockInfo.special,
                         id: `special-${specialBlockRow}-${specialBlockCol}-${Date.now()}`
                     };
-                    console.log(`🌟 특수 블록 생성: ${specialBlockInfo.special} at (${specialBlockRow}, ${specialBlockCol})`);
                     
                     allCells.forEach(({ row: r, col: c }) => {
                         if (r !== specialBlockRow || c !== specialBlockCol) {
@@ -168,7 +159,7 @@ const TokenCrush = () => {
         });
 
         allCells.forEach(({ row, col }) => {
-            if (newBoard[row][col] && !newBoard[row][col].special) {
+            if (newBoard[row]?.[col] && !newBoard[row][col].special) {
                 newBoard[row][col] = null;
             }
         });
@@ -186,6 +177,66 @@ const TokenCrush = () => {
         return processMatches(filledBoard, newCombo, null);
     };
 
+    const activateSpecialBlock = async (boardState, row, col, special) => {
+        console.log(`💥 특수 블록 활성화: ${special} at (${row}, ${col})`);
+
+        const targets = TokenCrushEngine.getSpecialBlockTargets(row, col, special, TokenCrushSetting.board.gridSize);
+        const cellsToRemove = [];
+        const chainActivations = [];
+
+        // 실제로 블록이 있는 셀만 제거 대상에 추가
+        targets.forEach(t => {
+            const targetCell = boardState[t.row]?.[t.col];
+            
+            if (targetCell) { // null이 아닌 경우만 (이미 제거된 셀 제외)
+                cellsToRemove.push(t);
+                
+                if (TokenCrushEngine.isSpecialBlock(targetCell) && !(t.row === row && t.col === col)) {
+                    chainActivations.push({ row: t.row, col: t.col, special: targetCell.special });
+                    console.log(`🔗 연쇄 활성화 추가: ${targetCell.special} at (${t.row}, ${t.col})`);
+                }
+            } else {
+                console.log(`⚠️ (${t.row}, ${t.col})는 이미 비어있음 - 점수 계산 제외`);
+            }
+        });
+
+        // 현재 특수 블록 애니메이션
+        setMatchingCells(cellsToRemove.map(c => ({ ...c, phase: 'blinking' })));
+        await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.blink));
+
+        setMatchingCells(cellsToRemove.map(c => ({ ...c, phase: 'exploding' })));
+        await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.explode));
+
+        // 특수 블록 점수 계산 (실제 제거된 셀 수만 계산)
+        const specialScore = cellsToRemove.length * (TokenCrushSetting.score.points.SPECIAL || 20);
+        
+        console.log(`💰 특수 블록 점수: ${cellsToRemove.length}칸 × ${TokenCrushSetting.score.points.SPECIAL || 20}점 = ${specialScore}점`);
+        setScore(prev => prev + specialScore);
+
+        // 제거 (특수 블록 제외하고 먼저 제거)
+        const updatedBoard = boardState.map(row => [...row]);
+        cellsToRemove.forEach(({ row, col }) => {
+            // 연쇄될 특수 블록이 아니면 바로 제거
+            const isChainTarget = chainActivations.some(c => c.row === row && c.col === col);
+            if (!isChainTarget) {
+                updatedBoard[row][col] = null;
+            }
+        });
+
+        setMatchingCells([]);
+        setBoard(updatedBoard);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 연쇄 활성화 (특수 블록들이 아직 남아있는 상태에서 발동)
+        let finalBoard = updatedBoard;
+        for (const chain of chainActivations) {
+            console.log(`⛓️ 연쇄 실행: ${chain.special} at (${chain.row}, ${chain.col})`);
+            finalBoard = await activateSpecialBlock(finalBoard, chain.row, chain.col, chain.special);
+        }
+
+        return finalBoard;
+    };
+
     const swapTokens = async (row1, col1, row2, col2) => {
         if (isAnimating || isGameOver) return;
 
@@ -195,10 +246,9 @@ const TokenCrush = () => {
         const cell2 = board[row2][col2];
         
         if (TokenCrushEngine.isSpecialBlock(cell1) || TokenCrushEngine.isSpecialBlock(cell2)) {
-            // 먼저 스왑 애니메이션
             setSwappingCells([{ row: row1, col: col1 }, { row: row2, col: col2 }]);
 
-            const newBoard = board.map(row => [...row]);
+            let newBoard = board.map(row => [...row]);
             [newBoard[row1][col1], newBoard[row2][col2]] =
                 [newBoard[row2][col2], newBoard[row1][col1]];
 
@@ -206,44 +256,12 @@ const TokenCrush = () => {
             setBoard(newBoard);
             setSwappingCells([]);
 
-            // 스왑 후 위치에서 특수 블록 활성화
-            const cellsToRemove = new Set();
-
-            // cell1이 특수 블록이면 row2, col2 위치에서 발동
             if (TokenCrushEngine.isSpecialBlock(cell1)) {
-                const targets = TokenCrushEngine.getSpecialBlockTargets(row2, col2, cell1.special, TokenCrushSetting.board.gridSize);
-                targets.forEach(t => cellsToRemove.add(`${t.row}-${t.col}`));
-                console.log(`💥 특수 블록 활성화: ${cell1.special} at (${row2}, ${col2})`);
+                newBoard = await activateSpecialBlock(newBoard, row2, col2, cell1.special);
             }
-
-            // cell2가 특수 블록이면 row1, col1 위치에서 발동
             if (TokenCrushEngine.isSpecialBlock(cell2)) {
-                const targets = TokenCrushEngine.getSpecialBlockTargets(row1, col1, cell2.special, TokenCrushSetting.board.gridSize);
-                targets.forEach(t => cellsToRemove.add(`${t.row}-${t.col}`));
-                console.log(`💥 특수 블록 활성화: ${cell2.special} at (${row1}, ${col1})`);
+                newBoard = await activateSpecialBlock(newBoard, row1, col1, cell2.special);
             }
-
-            const cellsArray = Array.from(cellsToRemove).map(key => {
-                const [row, col] = key.split('-').map(Number);
-                return { row, col };
-            });
-
-            setMatchingCells(cellsArray.map(c => ({ ...c, phase: 'blinking' })));
-            await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.blink));
-
-            setMatchingCells(cellsArray.map(c => ({ ...c, phase: 'exploding' })));
-            await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.explode));
-
-            const bonusScore = cellsArray.length * 50;
-            setScore(prev => prev + bonusScore);
-
-            cellsArray.forEach(({ row, col }) => {
-                newBoard[row][col] = null;
-            });
-
-            setMatchingCells([]);
-            setBoard(newBoard);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             const { newBoard: filledBoard, falling } = TokenCrushEngine.fillEmpty(newBoard);
             setFallingCells(falling);
@@ -251,7 +269,7 @@ const TokenCrush = () => {
             await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.fall));
             setFallingCells([]);
 
-            const finalBoard = await processMatches(filledBoard, 0);
+            const finalBoard = await processMatches(filledBoard, 0, null);
             setBoard(finalBoard);
             setSelectedCell(null);
             return;
@@ -270,7 +288,6 @@ const TokenCrush = () => {
         const matches = TokenCrushEngine.checkMatches(newBoard);
 
         if (matches.length > 0) {
-            // 움직인 블록의 새 위치를 전달 (row2, col2로 이동함)
             const finalBoard = await processMatches(newBoard, 0, { row: row2, col: col2 });
             setBoard(finalBoard);
         } else {
@@ -288,7 +305,6 @@ const TokenCrush = () => {
 
     const handleCellClick = (row, col) => {
         if (isAnimating || isGameOver) return;
-
         resetHintTimer();
 
         if (!selectedCell) {
@@ -304,12 +320,9 @@ const TokenCrush = () => {
 
     const handleDragStart = (row, col, e) => {
         if (isAnimating || isGameOver) return;
-
         const touch = e.touches ? e.touches[0] : e;
-
         setDragStart({
-            row,
-            col,
+            row, col,
             startX: touch.clientX,
             startY: touch.clientY
         });
@@ -319,16 +332,13 @@ const TokenCrush = () => {
 
     const handleDragMove = (e) => {
         if (!dragStart || isAnimating || isGameOver) return;
-
         const touch = e.touches ? e.touches[0] : e;
-
         const offsetX = touch.clientX - dragStart.startX;
         const offsetY = touch.clientY - dragStart.startY;
         setDragOffset({ x: offsetX, y: offsetY });
 
         const cellSize = document.querySelector('[data-row]')?.offsetWidth || 50;
         const threshold = cellSize * 0.3;
-
         const absX = Math.abs(offsetX);
         const absY = Math.abs(offsetY);
 
@@ -354,9 +364,7 @@ const TokenCrush = () => {
     };
 
     const handleDragEnd = () => {
-        if (!dragStart) {
-            return;
-        }
+        if (!dragStart) return;
 
         if (!dragCurrent || (dragCurrent.row === dragStart.row && dragCurrent.col === dragStart.col)) {
             setDragStart(null);
@@ -389,9 +397,7 @@ const TokenCrush = () => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    setTimeout(() => {
-                        setIsGameOver(true);
-                    }, 100);
+                    setTimeout(() => setIsGameOver(true), 100);
                     return 0;
                 }
                 return prev - 1;
@@ -428,10 +434,7 @@ const TokenCrush = () => {
                             <h1 className="text-5xl sm:text-6xl font-bold text-white text-center idle-pulse">
                                 Token Crush
                             </h1>
-                            <button
-                                onClick={startGame}
-                                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
-                            >
+                            <button onClick={startGame} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xl font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg">
                                 Start Game
                             </button>
                         </div>
@@ -443,10 +446,7 @@ const TokenCrush = () => {
                                     <div className="text-white text-lg font-bold">{timeLeft}s</div>
                                 </div>
                                 <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-1000"
-                                        style={{ width: `${(timeLeft / TokenCrushSetting.time.initial) * 100}%` }}
-                                    ></div>
+                                    <div className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-1000" style={{ width: `${(timeLeft / TokenCrushSetting.time.initial) * 100}%` }}></div>
                                 </div>
                             </div>
 
@@ -454,10 +454,7 @@ const TokenCrush = () => {
                                 <div className="mb-2 bg-purple-900/50 border-2 border-purple-500 rounded-lg p-3 text-center flex-shrink-0 animate-fadeIn">
                                     <h2 className="text-xl font-bold text-purple-400 mb-1">Game Over!</h2>
                                     <p className="text-white mb-2">Final Score: {score}</p>
-                                    <button
-                                        onClick={restartGame}
-                                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg"
-                                    >
+                                    <button onClick={restartGame} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg">
                                         Play Again
                                     </button>
                                 </div>
@@ -467,9 +464,7 @@ const TokenCrush = () => {
                                 {showShuffleNotice && (
                                     <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
                                         <div className="bg-gradient-to-br from-purple-600 to-pink-600 px-8 py-6 rounded-2xl shadow-2xl border-2 border-white/30 animate-pulse">
-                                            <p className="text-white text-2xl font-bold text-center">
-                                                🔀 보드 섞는 중...
-                                            </p>
+                                            <p className="text-white text-2xl font-bold text-center">🔀 보드 섞는 중...</p>
                                         </div>
                                     </div>
                                 )}

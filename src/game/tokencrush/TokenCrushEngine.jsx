@@ -87,12 +87,12 @@ export class TokenCrushEngine {
 
     // 특수 블록인지 확인
     static isSpecialBlock(cell) {
-        return cell && (
-            cell.special === 'LINE_H' || 
-            cell.special === 'LINE_V' || 
-            cell.special === TokenCrushSetting.specialBlocks.BOMB || 
-            cell.special === TokenCrushSetting.specialBlocks.MEGA
-        );
+        if (!cell) return false;
+        
+        return cell.special === 'LINE_H' || 
+               cell.special === 'LINE_V' || 
+               cell.special === TokenCrushSetting.specialBlocks.BOMB || 
+               cell.special === TokenCrushSetting.specialBlocks.MEGA;
     }
 
     static checkMatches(currentBoard) {

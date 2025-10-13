@@ -29,7 +29,8 @@ const TokenCrushSetting = {
       THREE: 10,    // 3개 매칭: 개당 10점
       FOUR: 12,     // 4개 매칭: 개당 12점
       TL: 13,       // T/L 매칭: 개당 13점
-      LINE5: 15     // 5개 이상 일직선: 개당 15점
+      LINE5: 15,     // 5개 이상 일직선: 개당 15점
+      SPECIAL: 10  // 특수 블록 활성화 시 제거된 셀당 점수
     }
   },
 
@@ -63,7 +64,7 @@ const TokenCrushSetting = {
     BOMB_BLOCK: 'bg-gradient-to-br from-red-500 to-orange-500',
     MEGA_BLOCK: 'bg-gradient-to-br from-purple-500 to-pink-500'
   }
-  
+
 };
 
 export default TokenCrushSetting;
