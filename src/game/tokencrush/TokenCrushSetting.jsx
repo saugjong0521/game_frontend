@@ -50,7 +50,20 @@ const TokenCrushSetting = {
     hint: 1500,      // 힌트 반짝임 시간
     pulse: 4000,     // 타이틀 펄스 시간
     fadeIn: 300      // 페이드인 시간
+  },
+
+  specialBlocks: {
+    LINE: 'LINE_BLOCK',      // 4개: 줄 지우기 블록
+    BOMB: 'BOMB_BLOCK',      // TL: 폭탄 (주변 8칸)
+    MEGA: 'MEGA_BLOCK'       // 5개 이상: 3줄 지우기
+  },
+
+  specialBlockColors: {
+    LINE_BLOCK: 'bg-gradient-to-br from-blue-500 to-cyan-500',
+    BOMB_BLOCK: 'bg-gradient-to-br from-red-500 to-orange-500',
+    MEGA_BLOCK: 'bg-gradient-to-br from-purple-500 to-pink-500'
   }
+  
 };
 
 export default TokenCrushSetting;

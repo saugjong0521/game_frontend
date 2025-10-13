@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
+import {
     TokenCrushSetting,
-    TokenCrushAnimation
- } from '@/game/tokencrush';
+    TokenCrushAnimation,
+    TokenCrushEngine
+} from '@/game/tokencrush';
 import './tokenCrushAnimate.css';
 
 const TokenCrush = () => {
@@ -28,77 +29,23 @@ const TokenCrush = () => {
     const hintTimerRef = useRef(null);
     const boardRef = useRef(board);
 
-    // board 상태가 변경될 때마다 ref 업데이트
     useEffect(() => {
         boardRef.current = board;
     }, [board]);
 
-    // hintCells 상태 변경 추적
-    useEffect(() => {
-        console.log('💡 hintCells 상태 변경됨:', hintCells);
-    }, [hintCells]);
-
-    // 힌트 표시
     const showHint = useCallback(() => {
         const currentBoard = boardRef.current;
-        console.log('🔍 힌트 함수 실행됨');
-        console.log('현재 상태:', { isAnimating, isGameOver, gameStarted, timeLeft, boardLength: currentBoard.length });
-        console.log('현재 hintCells:', hintCells);
-
         if (isAnimating || isGameOver || !gameStarted || timeLeft <= 0 || !currentBoard.length) {
-            console.log('❌ 힌트 표시 조건 불만족');
             return;
         }
 
-        // 가능한 매치를 찾아서 힌트로 표시
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            for (let col = 0; col < TokenCrushSetting.board.gridSize - 1; col++) {
-                if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row][col + 1]) continue;
-
-                const testBoard = currentBoard.map(r => [...r]);
-                [testBoard[row][col], testBoard[row][col + 1]] =
-                    [testBoard[row][col + 1], testBoard[row][col]];
-
-                if (checkMatches(testBoard).length > 0) {
-                    const newHintCells = [
-                        { row, col },
-                        { row, col: col + 1 }
-                    ];
-                    console.log('✨ 힌트 발견! 가로:', { row, col }, '→', { row, col: col + 1 });
-                    console.log('setHintCells 호출:', newHintCells);
-                    setHintCells(newHintCells);
-                    return;
-                }
-            }
+        const hint = TokenCrushEngine.findHint(currentBoard);
+        if (hint) {
+            setHintCells(hint);
         }
+    }, [isAnimating, isGameOver, gameStarted, timeLeft]);
 
-        for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-            for (let row = 0; row < TokenCrushSetting.board.gridSize - 1; row++) {
-                if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row + 1] || !currentBoard[row + 1][col]) continue;
-
-                const testBoard = currentBoard.map(r => [...r]);
-                [testBoard[row][col], testBoard[row + 1][col]] =
-                    [testBoard[row + 1][col], testBoard[row][col]];
-
-                if (checkMatches(testBoard).length > 0) {
-                    const newHintCells = [
-                        { row, col },
-                        { row: row + 1, col }
-                    ];
-                    console.log('✨ 힌트 발견! 세로:', { row, col }, '→', { row: row + 1, col });
-                    console.log('setHintCells 호출:', newHintCells);
-                    setHintCells(newHintCells);
-                    return;
-                }
-            }
-        }
-
-        console.log('⚠️ 힌트를 찾지 못함');
-    }, [isAnimating, isGameOver, gameStarted, timeLeft, hintCells]);
-
-    // 힌트 타이머 초기화
     const resetHintTimer = () => {
-        console.log('⏰ 힌트 타이머 리셋됨');
         lastMoveTimeRef.current = Date.now();
         setHintCells([]);
 
@@ -107,19 +54,14 @@ const TokenCrush = () => {
         }
 
         if (!isAnimating && !isGameOver && gameStarted && timeLeft > 0) {
-            console.log('⏳ 5초 후 힌트 타이머 시작');
             hintTimerRef.current = setTimeout(() => {
                 showHint();
             }, 5000);
-        } else {
-            console.log('❌ 힌트 타이머 시작 조건 불만족:', { isAnimating, isGameOver, gameStarted, timeLeft });
         }
     };
 
-    // 게임 시작/종료/애니메이션 상태 변경 시 타이머 관리
     useEffect(() => {
         if (gameStarted && !isAnimating && !isGameOver) {
-            console.log('🎮 게임 상태 변경 - 힌트 타이머 리셋');
             resetHintTimer();
         } else {
             if (hintTimerRef.current) {
@@ -135,268 +77,29 @@ const TokenCrush = () => {
         };
     }, [gameStarted, isAnimating, isGameOver]);
 
-    const createBoard = () => {
-        const newBoard = [];
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            newBoard[row] = [];
-            for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-                newBoard[row][col] = {
-                    token: TokenCrushSetting.tokens.types[Math.floor(Math.random() * TokenCrushSetting.tokens.types.length)],
-                    id: `${row}-${col}-${Date.now()}`
-                };
-            }
-        }
-        return newBoard;
-    };
-
-    const checkMatches = (currentBoard) => {
-        const allMatches = [];
-        const processed = new Set();
-
-        // 각 셀에서 교차점(십자가) 패턴 먼저 찾기
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-                if (!currentBoard[row][col] || processed.has(`${row}-${col}`)) continue;
-
-                const token = currentBoard[row][col].token;
-
-                // 가로 방향으로 연속된 길이 찾기
-                let horizontalLength = 1;
-                let horizontalStart = col;
-                // 왼쪽으로 확장
-                while (horizontalStart > 0 && currentBoard[row][horizontalStart - 1]?.token === token) {
-                    horizontalStart--;
-                    horizontalLength++;
-                }
-                // 오른쪽으로 확장
-                let horizontalEnd = col;
-                while (horizontalEnd < TokenCrushSetting.board.gridSize - 1 && currentBoard[row][horizontalEnd + 1]?.token === token) {
-                    horizontalEnd++;
-                    horizontalLength++;
-                }
-
-                // 세로 방향으로 연속된 길이 찾기
-                let verticalLength = 1;
-                let verticalStart = row;
-                // 위로 확장
-                while (verticalStart > 0 && currentBoard[verticalStart - 1]?.[col]?.token === token) {
-                    verticalStart--;
-                    verticalLength++;
-                }
-                // 아래로 확장
-                let verticalEnd = row;
-                while (verticalEnd < TokenCrushSetting.board.gridSize - 1 && currentBoard[verticalEnd + 1]?.[col]?.token === token) {
-                    verticalEnd++;
-                    verticalLength++;
-                }
-
-                // 교차점 패턴 체크 (가로 3개 이상 AND 세로 3개 이상)
-                if (horizontalLength >= 3 && verticalLength >= 3) {
-                    const cells = [];
-                    // 가로 라인 추가
-                    for (let c = horizontalStart; c <= horizontalEnd; c++) {
-                        cells.push({ row, col: c });
-                        processed.add(`${row}-${c}`);
-                    }
-                    // 세로 라인 추가 (중심점 제외)
-                    for (let r = verticalStart; r <= verticalEnd; r++) {
-                        if (r !== row) {
-                            cells.push({ row: r, col });
-                            processed.add(`${r}-${col}`);
-                        }
-                    }
-
-                    allMatches.push({
-                        cells,
-                        type: 'TL',
-                        count: cells.length
-                    });
-                }
-            }
-        }
-
-        // 가로 라인 체크
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            for (let col = 0; col < TokenCrushSetting.board.gridSize - 2; col++) {
-                if (!currentBoard[row][col] || processed.has(`${row}-${col}`)) continue;
-
-                const token = currentBoard[row][col].token;
-                if (!currentBoard[row][col + 1] || !currentBoard[row][col + 2]) continue;
-
-                if (token === currentBoard[row][col + 1].token &&
-                    token === currentBoard[row][col + 2].token) {
-                    let matchLength = 3;
-                    while (col + matchLength < TokenCrushSetting.board.gridSize &&
-                        currentBoard[row][col + matchLength] &&
-                        currentBoard[row][col + matchLength].token === token &&
-                        !processed.has(`${row}-${col + matchLength}`)) {
-                        matchLength++;
-                    }
-
-                    const cells = [];
-                    for (let i = 0; i < matchLength; i++) {
-                        cells.push({ row, col: col + i });
-                        processed.add(`${row}-${col + i}`);
-                    }
-
-                    const type = matchLength >= 5 ? 'LINE5' : matchLength === 4 ? 'FOUR' : 'THREE';
-                    allMatches.push({ cells, type, count: matchLength });
-                    col += matchLength - 1;
-                }
-            }
-        }
-
-        // 세로 라인 체크
-        for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-            for (let row = 0; row < TokenCrushSetting.board.gridSize - 2; row++) {
-                if (!currentBoard[row][col] || processed.has(`${row}-${col}`)) continue;
-
-                const token = currentBoard[row][col].token;
-                if (!currentBoard[row + 1]?.[col] || !currentBoard[row + 2]?.[col]) continue;
-
-                if (token === currentBoard[row + 1][col].token &&
-                    token === currentBoard[row + 2][col].token) {
-                    let matchLength = 3;
-                    while (row + matchLength < TokenCrushSetting.board.gridSize &&
-                        currentBoard[row + matchLength]?.[col] &&
-                        currentBoard[row + matchLength][col].token === token &&
-                        !processed.has(`${row + matchLength}-${col}`)) {
-                        matchLength++;
-                    }
-
-                    const cells = [];
-                    for (let i = 0; i < matchLength; i++) {
-                        cells.push({ row: row + i, col });
-                        processed.add(`${row + i}-${col}`);
-                    }
-
-                    const type = matchLength >= 5 ? 'LINE5' : matchLength === 4 ? 'FOUR' : 'THREE';
-                    allMatches.push({ cells, type, count: matchLength });
-                    row += matchLength - 1;
-                }
-            }
-        }
-
-        return allMatches;
-    };
-
-    const hasPossibleMoves = (currentBoard) => {
-        if (!currentBoard || currentBoard.length === 0) return false;
-
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            for (let col = 0; col < TokenCrushSetting.board.gridSize - 1; col++) {
-                if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row][col + 1]) continue;
-
-                const testBoard = currentBoard.map(r => [...r]);
-                [testBoard[row][col], testBoard[row][col + 1]] =
-                    [testBoard[row][col + 1], testBoard[row][col]];
-
-                if (checkMatches(testBoard).length > 0) {
-                    return true;
-                }
-            }
-        }
-
-        for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-            for (let row = 0; row < TokenCrushSetting.board.gridSize - 1; row++) {
-                if (!currentBoard[row] || !currentBoard[row][col] || !currentBoard[row + 1] || !currentBoard[row + 1][col]) continue;
-
-                const testBoard = currentBoard.map(r => [...r]);
-                [testBoard[row][col], testBoard[row + 1][col]] =
-                    [testBoard[row + 1][col], testBoard[row][col]];
-
-                if (checkMatches(testBoard).length > 0) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    };
-
-    const shuffleBoard = (currentBoard) => {
-        const newBoard = [];
-        const allTokens = [];
-
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-                if (currentBoard[row] && currentBoard[row][col]) {
-                    allTokens.push(currentBoard[row][col].token);
-                }
-            }
-        }
-
-        for (let i = allTokens.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allTokens[i], allTokens[j]] = [allTokens[j], allTokens[i]];
-        }
-
-        let tokenIndex = 0;
-        for (let row = 0; row < TokenCrushSetting.board.gridSize; row++) {
-            newBoard[row] = [];
-            for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-                newBoard[row][col] = {
-                    token: allTokens[tokenIndex++],
-                    id: `${row}-${col}-${Date.now()}-${Math.random()}`
-                };
-            }
-        }
-
-        return newBoard;
-    };
-
-    const fillEmpty = (currentBoard) => {
-        const newBoard = currentBoard.map(row => [...row]);
-        const falling = [];
-
-        for (let col = 0; col < TokenCrushSetting.board.gridSize; col++) {
-            let emptySpaces = 0;
-            for (let row = TokenCrushSetting.board.gridSize - 1; row >= 0; row--) {
-                if (newBoard[row][col] === null) {
-                    emptySpaces++;
-                } else if (emptySpaces > 0) {
-                    newBoard[row + emptySpaces][col] = newBoard[row][col];
-                    newBoard[row][col] = null;
-                    falling.push({ row: row + emptySpaces, col });
-                }
-            }
-
-            for (let row = 0; row < emptySpaces; row++) {
-                newBoard[row][col] = {
-                    token: TokenCrushSetting.tokens.types[Math.floor(Math.random() * TokenCrushSetting.tokens.types.length)],
-                    id: `${row}-${col}-${Date.now()}-${Math.random()}`
-                };
-                falling.push({ row, col });
-            }
-        }
-
-        return { newBoard, falling };
-    };
-
-    const processMatches = async (currentBoard, currentCombo = 0) => {
-        // 게임 오버 상태면 더 이상 매치 처리하지 않음
+    const processMatches = async (currentBoard, currentCombo = 0, swappedCell = null) => {
         if (isGameOver) {
             return currentBoard;
         }
 
         setIsAnimating(true);
 
-        const matches = checkMatches(currentBoard);
+        const matches = TokenCrushEngine.checkMatches(currentBoard);
         if (matches.length === 0) {
             setCombo(0);
             setShowCombo(false);
 
-            if (!hasPossibleMoves(currentBoard)) {
+            if (!TokenCrushEngine.hasPossibleMoves(currentBoard)) {
                 setShowShuffleNotice(true);
                 await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.shuffle));
                 setShowShuffleNotice(false);
 
-                const shuffled = shuffleBoard(currentBoard);
+                const shuffled = TokenCrushEngine.shuffleBoard(currentBoard);
                 setBoard(shuffled);
                 await new Promise(resolve => setTimeout(resolve, 300));
 
                 setIsAnimating(false);
-                return processMatches(shuffled, 0);
+                return processMatches(shuffled, 0, null);
             }
 
             setIsAnimating(false);
@@ -406,31 +109,15 @@ const TokenCrush = () => {
         const newCombo = currentCombo + 1;
         setCombo(newCombo);
 
-        // 게임 오버가 아닐 때만 시간 보너스 추가
         if (newCombo >= TokenCrushSetting.combo.startIndex && !isGameOver) {
             const timeBonus = Math.floor(Math.pow(TokenCrushSetting.combo.timeMultiplier, newCombo - TokenCrushSetting.combo.startIndex));
             setTimeLeft(prev => {
-                // 시간이 0 이하면 보너스를 추가하지 않음
                 if (prev <= 0) return 0;
                 return Math.min(prev + timeBonus, TokenCrushSetting.time.max);
             });
-            console.log(`${newCombo}콤보 → +${timeBonus}초 추가`);
         }
 
-        let totalScore = 0;
-        const allCells = [];
-
-        matches.forEach(match => {
-            const basePoints = TokenCrushSetting.score.points[match.type] || TokenCrushSetting.score.points.THREE;
-            const matchScore = match.count * basePoints;
-            totalScore += matchScore;
-            allCells.push(...match.cells);
-        });
-
-        const comboMultiplier = Math.pow(TokenCrushSetting.combo.scoreMultiplier, newCombo - 1);
-        const finalScore = Math.floor(totalScore * comboMultiplier);
-
-        console.log(`콤보: ${newCombo}, 기본점수: ${totalScore}, 배율: ${comboMultiplier.toFixed(2)}x, 최종점수: ${finalScore}`);
+        const { finalScore, allCells, comboMultiplier } = TokenCrushEngine.calculateScore(matches, newCombo);
 
         if (newCombo >= TokenCrushSetting.combo.startIndex) {
             setShowCombo(true);
@@ -445,27 +132,130 @@ const TokenCrush = () => {
         setScore(prev => prev + finalScore);
 
         const newBoard = currentBoard.map(row => [...row]);
+        
+        matches.forEach(match => {
+            if ((match.type === 'LINE5' || match.type === 'TL' || match.type === 'FOUR')) {
+                let specialBlockRow, specialBlockCol;
+                
+                // 사용자가 움직인 블록이 이 매치에 포함되어 있으면 그 위치에 생성
+                if (swappedCell && match.cells.some(c => c.row === swappedCell.row && c.col === swappedCell.col)) {
+                    specialBlockRow = swappedCell.row;
+                    specialBlockCol = swappedCell.col;
+                } else if (match.centerCell) {
+                    // 움직인 블록이 없거나 매치에 포함 안 되면 중앙에 생성
+                    specialBlockRow = match.centerCell.row;
+                    specialBlockCol = match.centerCell.col;
+                }
+
+                const specialBlockInfo = TokenCrushEngine.createSpecialBlock(match.type, match.direction);
+                
+                if (specialBlockInfo && newBoard[specialBlockRow][specialBlockCol]) {
+                    newBoard[specialBlockRow][specialBlockCol] = {
+                        token: null, // 특수 블록은 토큰이 없음
+                        special: specialBlockInfo.special,
+                        id: `special-${specialBlockRow}-${specialBlockCol}-${Date.now()}`
+                    };
+                    console.log(`🌟 특수 블록 생성: ${specialBlockInfo.special} at (${specialBlockRow}, ${specialBlockCol})`);
+                    
+                    allCells.forEach(({ row: r, col: c }) => {
+                        if (r !== specialBlockRow || c !== specialBlockCol) {
+                            newBoard[r][c] = null;
+                        }
+                    });
+                    return;
+                }
+            }
+        });
+
         allCells.forEach(({ row, col }) => {
-            newBoard[row][col] = null;
+            if (newBoard[row][col] && !newBoard[row][col].special) {
+                newBoard[row][col] = null;
+            }
         });
 
         setMatchingCells([]);
         setBoard(newBoard);
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const { newBoard: filledBoard, falling } = fillEmpty(newBoard);
+        const { newBoard: filledBoard, falling } = TokenCrushEngine.fillEmpty(newBoard);
         setFallingCells(falling);
         setBoard(filledBoard);
         await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.fall));
         setFallingCells([]);
 
-        return processMatches(filledBoard, newCombo);
+        return processMatches(filledBoard, newCombo, null);
     };
 
     const swapTokens = async (row1, col1, row2, col2) => {
         if (isAnimating || isGameOver) return;
 
-        resetHintTimer(); // 움직임 발생 시 타이머 리셋
+        resetHintTimer();
+
+        const cell1 = board[row1][col1];
+        const cell2 = board[row2][col2];
+        
+        if (TokenCrushEngine.isSpecialBlock(cell1) || TokenCrushEngine.isSpecialBlock(cell2)) {
+            // 먼저 스왑 애니메이션
+            setSwappingCells([{ row: row1, col: col1 }, { row: row2, col: col2 }]);
+
+            const newBoard = board.map(row => [...row]);
+            [newBoard[row1][col1], newBoard[row2][col2]] =
+                [newBoard[row2][col2], newBoard[row1][col1]];
+
+            await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.swap));
+            setBoard(newBoard);
+            setSwappingCells([]);
+
+            // 스왑 후 위치에서 특수 블록 활성화
+            const cellsToRemove = new Set();
+
+            // cell1이 특수 블록이면 row2, col2 위치에서 발동
+            if (TokenCrushEngine.isSpecialBlock(cell1)) {
+                const targets = TokenCrushEngine.getSpecialBlockTargets(row2, col2, cell1.special, TokenCrushSetting.board.gridSize);
+                targets.forEach(t => cellsToRemove.add(`${t.row}-${t.col}`));
+                console.log(`💥 특수 블록 활성화: ${cell1.special} at (${row2}, ${col2})`);
+            }
+
+            // cell2가 특수 블록이면 row1, col1 위치에서 발동
+            if (TokenCrushEngine.isSpecialBlock(cell2)) {
+                const targets = TokenCrushEngine.getSpecialBlockTargets(row1, col1, cell2.special, TokenCrushSetting.board.gridSize);
+                targets.forEach(t => cellsToRemove.add(`${t.row}-${t.col}`));
+                console.log(`💥 특수 블록 활성화: ${cell2.special} at (${row1}, ${col1})`);
+            }
+
+            const cellsArray = Array.from(cellsToRemove).map(key => {
+                const [row, col] = key.split('-').map(Number);
+                return { row, col };
+            });
+
+            setMatchingCells(cellsArray.map(c => ({ ...c, phase: 'blinking' })));
+            await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.blink));
+
+            setMatchingCells(cellsArray.map(c => ({ ...c, phase: 'exploding' })));
+            await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.explode));
+
+            const bonusScore = cellsArray.length * 50;
+            setScore(prev => prev + bonusScore);
+
+            cellsArray.forEach(({ row, col }) => {
+                newBoard[row][col] = null;
+            });
+
+            setMatchingCells([]);
+            setBoard(newBoard);
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const { newBoard: filledBoard, falling } = TokenCrushEngine.fillEmpty(newBoard);
+            setFallingCells(falling);
+            setBoard(filledBoard);
+            await new Promise(resolve => setTimeout(resolve, TokenCrushSetting.animation.fall));
+            setFallingCells([]);
+
+            const finalBoard = await processMatches(filledBoard, 0);
+            setBoard(finalBoard);
+            setSelectedCell(null);
+            return;
+        }
 
         setSwappingCells([{ row: row1, col: col1 }, { row: row2, col: col2 }]);
 
@@ -477,10 +267,11 @@ const TokenCrush = () => {
         setBoard(newBoard);
         setSwappingCells([]);
 
-        const matches = checkMatches(newBoard);
+        const matches = TokenCrushEngine.checkMatches(newBoard);
 
         if (matches.length > 0) {
-            const finalBoard = await processMatches(newBoard, 0);
+            // 움직인 블록의 새 위치를 전달 (row2, col2로 이동함)
+            const finalBoard = await processMatches(newBoard, 0, { row: row2, col: col2 });
             setBoard(finalBoard);
         } else {
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -498,15 +289,12 @@ const TokenCrush = () => {
     const handleCellClick = (row, col) => {
         if (isAnimating || isGameOver) return;
 
-        resetHintTimer(); // 움직임 발생 시 타이머 리셋
+        resetHintTimer();
 
         if (!selectedCell) {
             setSelectedCell({ row, col });
         } else {
-            const rowDiff = Math.abs(selectedCell.row - row);
-            const colDiff = Math.abs(selectedCell.col - col);
-
-            if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+            if (TokenCrushEngine.isAdjacentCells(selectedCell, { row, col })) {
                 swapTokens(selectedCell.row, selectedCell.col, row, col);
             } else {
                 setSelectedCell({ row, col });
@@ -538,20 +326,30 @@ const TokenCrush = () => {
         const offsetY = touch.clientY - dragStart.startY;
         setDragOffset({ x: offsetX, y: offsetY });
 
-        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        const cellSize = document.querySelector('[data-row]')?.offsetWidth || 50;
+        const threshold = cellSize * 0.3;
 
-        if (element && element.dataset.row !== undefined) {
-            const row = parseInt(element.dataset.row);
-            const col = parseInt(element.dataset.col);
+        const absX = Math.abs(offsetX);
+        const absY = Math.abs(offsetY);
 
-            const rowDiff = Math.abs(row - dragStart.row);
-            const colDiff = Math.abs(col - dragStart.col);
-
-            if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
-                setDragCurrent({ row, col });
-            } else if (row === dragStart.row && col === dragStart.col) {
-                setDragCurrent(null);
+        if (absX > threshold || absY > threshold) {
+            if (absX > absY) {
+                const targetCol = dragStart.col + (offsetX > 0 ? 1 : -1);
+                if (targetCol >= 0 && targetCol < TokenCrushSetting.board.gridSize) {
+                    setDragCurrent({ row: dragStart.row, col: targetCol });
+                } else {
+                    setDragCurrent(null);
+                }
+            } else {
+                const targetRow = dragStart.row + (offsetY > 0 ? 1 : -1);
+                if (targetRow >= 0 && targetRow < TokenCrushSetting.board.gridSize) {
+                    setDragCurrent({ row: targetRow, col: dragStart.col });
+                } else {
+                    setDragCurrent(null);
+                }
             }
+        } else {
+            setDragCurrent(null);
         }
     };
 
@@ -560,12 +358,16 @@ const TokenCrush = () => {
             return;
         }
 
-        if (dragCurrent && !isAnimating && !isGameOver) {
-            const rowDiff = dragCurrent.row - dragStart.row;
-            const colDiff = dragCurrent.col - dragStart.col;
+        if (!dragCurrent || (dragCurrent.row === dragStart.row && dragCurrent.col === dragStart.col)) {
+            setDragStart(null);
+            setDragCurrent(null);
+            setDragOffset({ x: 0, y: 0 });
+            setSelectedCell(null);
+            return;
+        }
 
-            if ((Math.abs(rowDiff) === 1 && colDiff === 0) ||
-                (Math.abs(colDiff) === 1 && rowDiff === 0)) {
+        if (!isAnimating && !isGameOver) {
+            if (TokenCrushEngine.isAdjacentCells(dragStart, dragCurrent)) {
                 swapTokens(dragStart.row, dragStart.col, dragCurrent.row, dragCurrent.col);
             }
         }
@@ -576,7 +378,7 @@ const TokenCrush = () => {
     };
 
     const startGame = async () => {
-        let initialBoard = createBoard();
+        let initialBoard = TokenCrushEngine.createBoard();
         setBoard(initialBoard);
         setGameStarted(true);
         setScore(0);
@@ -587,7 +389,6 @@ const TokenCrush = () => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    // 애니메이션 완료 후 게임 오버 처리
                     setTimeout(() => {
                         setIsGameOver(true);
                     }, 100);
@@ -598,7 +399,7 @@ const TokenCrush = () => {
         }, 1000);
 
         await new Promise(resolve => setTimeout(resolve, 500));
-        initialBoard = await processMatches(initialBoard, 0);
+        initialBoard = await processMatches(initialBoard, 0, null);
         setBoard(initialBoard);
     };
 
@@ -615,6 +416,7 @@ const TokenCrush = () => {
         setCombo(0);
         setShowCombo(false);
         setIsGameOver(false);
+        setHintCells([]);
     };
 
     return (
@@ -707,11 +509,17 @@ const TokenCrush = () => {
                                             const isDragTarget = dragCurrent?.row === rowIndex && dragCurrent?.col === colIndex;
                                             const isDragging = dragStart?.row === rowIndex && dragStart?.col === colIndex;
                                             const isHint = hintCells.some(h => h.row === rowIndex && h.col === colIndex);
+                                            const isSpecial = cell?.special;
+
+                                            let cellColor = cell ? TokenCrushSetting.tokens.colors[cell.token] : 'bg-gray-700';
+                                            if (isSpecial) {
+                                                cellColor = TokenCrushSetting.specialBlockColors[cell.special] || 'bg-gradient-to-br from-gray-600 to-gray-800';
+                                            }
 
                                             const cellClasses = [
                                                 'aspect-square rounded-lg flex items-center justify-center',
-                                                'text-white font-bold text-xs sm:text-sm shadow-lg',
-                                                cell ? TokenCrushSetting.tokens.colors[cell.token] : 'bg-gray-700',
+                                                'text-white font-bold text-xs sm:text-sm shadow-lg relative',
+                                                cellColor,
                                                 isSelected && !isDragging && 'ring-2 ring-white scale-110',
                                                 isDragTarget && dragStart && 'ring-2 ring-yellow-400 scale-110',
                                                 isDragging && 'dragging ring-2 ring-cyan-400',
@@ -721,8 +529,15 @@ const TokenCrush = () => {
                                                 matchingCell?.phase === 'blinking' && 'blinking',
                                                 matchingCell?.phase === 'exploding' && 'exploding',
                                                 isSwapping && 'swapping',
-                                                isFalling && 'falling'
+                                                isFalling && 'falling',
+                                                isSpecial && 'ring-4 ring-yellow-400/70 animate-pulse'
                                             ].filter(Boolean).join(' ');
+
+                                            let specialIcon = '';
+                                            if (cell?.special === 'LINE_H') specialIcon = '━';
+                                            else if (cell?.special === 'LINE_V') specialIcon = '┃';
+                                            else if (cell?.special === TokenCrushSetting.specialBlocks.BOMB) specialIcon = '💣';
+                                            else if (cell?.special === TokenCrushSetting.specialBlocks.MEGA) specialIcon = '⭐';
 
                                             return (
                                                 <button
@@ -739,7 +554,11 @@ const TokenCrush = () => {
                                                     } : {}}
                                                     className={cellClasses}
                                                 >
-                                                    {cell?.token}
+                                                    {isSpecial ? (
+                                                        <span className="text-4xl">{specialIcon}</span>
+                                                    ) : (
+                                                        cell?.token
+                                                    )}
                                                 </button>
                                             );
                                         })
