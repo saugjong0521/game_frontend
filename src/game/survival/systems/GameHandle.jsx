@@ -1,4 +1,3 @@
-// systems/GameHandle.js
 import {
   GameSetting,
   GameEngine
